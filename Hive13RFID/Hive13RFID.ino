@@ -1,4 +1,7 @@
 #include <Wiegand.h>
+#include <SPI.h>
+#include <Ethernet.h>
+
 
 // I'm using the Wiegand library to make reading the files easier.  
 // Pins:  6  = Relay for the door
@@ -14,17 +17,38 @@
 
 
 WIEGAND wg;
+// MAC Address for Controller Below
+byte mac[] = {0x48, 0x49, 0x56, 0x45, 0x31, 0x33};
+char server[] = "door.at.hive13.org";
+IpAddress ip(172.16.3.230);
 
 void setup() {
     Serial.begin(57600);
     pinMode(13, OUTPUT);
     pinMode(12, OUTPUT);
     pinMode(6, OUTPUT);
+    // Let's set up the Ethernet Connections
+    if (Ethernet.begin(mac) == 0) {
+      Serial.println("Failed to configure Ethernet using DHCP.  Falling back to static address.");
+      Ethernet.begin(mac, ip);
+    }
+    delay(1000);
+    Serial.println("Attempting to make static connection to Door to ensure connectivity.");
+    
+    if (client.connect(server, 80)) {
+      Serial.println("connected to door controller.");
+      client.println("GET /testrequest");
+    } else {
+      Serial.println("Unable to connect to server.  Allowing all with Site code 107 into the hive");
+    }    
+    
+    // Initialize Wiegand Interface
     wg.begin();
     int count = 0;          // Used in loop for door open cycle
     int sensorValue = 0;    // Used to determine value of the magnetic sensor.
     int openCount = 0;
     int readCount = 0;
+    
     
     
 }
