@@ -3,7 +3,8 @@
 #include <Ethernet.h>
 
 
-// I'm using the Wiegand library to make reading the files easier.  
+// I'm using the Wiegand library to make reading the files easier. 
+// https://github.com/monkeyboard/Wiegand-Protocol-Library-for-Arduino.git
 // Pins:  6  = Relay for the door
 //        13 = Red/Green light on RFID Reader.  High == Red, Low == Green.
 //        12 = Buzzer attached to RFID Reader.  High == Off, Low == On.
