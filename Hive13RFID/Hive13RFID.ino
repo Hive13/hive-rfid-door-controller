@@ -20,7 +20,8 @@ WIEGAND wg;
 // MAC Address for Controller Below
 byte mac[] = {0x48, 0x49, 0x56, 0x45, 0x31, 0x33};
 char server[] = "door.at.hive13.org";
-IpAddress ip(172.16.3.230);
+IPAddress ip(172,16,3,230);
+EthernetClient client;
 
 void setup() {
     Serial.begin(57600);
@@ -44,16 +45,17 @@ void setup() {
     
     // Initialize Wiegand Interface
     wg.begin();
-    int count = 0;          // Used in loop for door open cycle
-    int sensorValue = 0;    // Used to determine value of the magnetic sensor.
-    int openCount = 0;
-    int readCount = 0;
+
     
     
     
 }
 
 void loop() {
+    int count = 0;          // Used in loop for door open cycle
+    int sensorValue = 0;    // Used to determine value of the magnetic sensor.
+    int openCount = 0;
+    int readCount = 0;
   digitalWrite(13, HIGH);
   digitalWrite(6, HIGH);
   digitalWrite(12, HIGH);
@@ -69,9 +71,10 @@ void loop() {
         Serial.print(wg.getWiegandType());
         Serial.print(" openCount = ");
         Serial.print(openCount);
-        Serial.print(
         
         Serial.println();
+        // if valid, open...
+        
         digitalWrite(6, LOW);
         delay(350);
         digitalWrite(13, LOW);
