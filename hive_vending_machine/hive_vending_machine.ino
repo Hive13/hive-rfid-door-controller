@@ -1,6 +1,8 @@
 #include <Ethernet.h>
+// https://github.com/monkeyboard/Wiegand-Protocol-Library-for-Arduino
 #include <Wiegand.h>
-#include <w1500.h>
+// The b64 and HttpClient libraries are both in this repository:
+// https://github.com/amcewen/HttpClient
 #include <SPI.h>
 #include <b64.h>
 #include <HttpClient.h>
