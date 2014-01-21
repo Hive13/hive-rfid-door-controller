@@ -143,6 +143,7 @@ void loop() {
           Serial.println("Badge Connection FAILED.");
     }
     }
+    // TODO: Make a mapping of soda button inputs to their appropriate relays.
     val = 0;
     val = digitalRead(22);
     Serial.print("Channel Value is ");
@@ -160,8 +161,10 @@ void loop() {
     val = digitalRead(28);
     Serial.print(val);
     digitalWrite(31,val);
-    val = 0;val = digitalRead(30);
+    val = 0;
+    val = digitalRead(30);
     Serial.print(val);
+    // TODO: parametize this in to more functions so it is easier to read and adapt.
     if(val == 0) {
       uint32_t randomLedsColor = Wheel(random(0, 255));
       Serial.print("Wooo colors!");
@@ -253,7 +256,8 @@ void loop() {
     digitalWrite(23,val);
 }
 
-
+/* LED Helper functions */
+// Most of the LED helper functions taken from adafruit's example code.
 void rainbowCycle(uint8_t wait) {
   int i, j;
   
@@ -294,7 +298,7 @@ void turnOffLeds() {
   leds.show();
 }
 
-/* Helper functions */
+
 
 // Create a 24 bit color value from R,G,B
 uint32_t Color(byte r, byte g, byte b)
