@@ -1,12 +1,13 @@
 #include <Ethernet.h>
 // https://github.com/monkeyboard/Wiegand-Protocol-Library-for-Arduino
 #include <Wiegand.h>
+#include <SPI.h>
 // The b64 and HttpClient libraries are both in this repository:
 // https://github.com/amcewen/HttpClient
-#include <SPI.h>
 #include <b64.h>
 #include <HttpClient.h>
-
+// https://github.com/adafruit/Adafruit-WS2801-Library
+#include <Adafruit_WS2801.h>
 
 
 WIEGAND wg;
@@ -15,7 +16,13 @@ byte mac[] = {
 char server[] = "172.16.3.233";
 IPAddress ip(172,16,2,254);
 EthernetClient client;
+
+uint8_t dataPin = 39;  // green wire
+uint8_t clockPin = 38; // blue wire
+Adafruit_WS2801 leds = Adafruit_WS2801(20, dataPin, clockPin);
+
 int val = 0;
+int randomSoda = 1;
 
 void setup() {
     Serial.begin(57600);
@@ -53,9 +60,11 @@ void setup() {
       }
 
     wg.begin();
+    // wiegand/rfid reader pins
     pinMode(7, OUTPUT);
     pinMode(8, OUTPUT);
     pinMode(9, OUTPUT);
+    // soda buttons
     pinMode(22,INPUT);
     digitalWrite(22,HIGH);
     pinMode(24,INPUT);
@@ -72,6 +81,7 @@ void setup() {
     digitalWrite(34,HIGH);
     pinMode(36,INPUT);
     digitalWrite(36,HIGH);
+    // soda relays
     pinMode(23,OUTPUT);
     pinMode(25,OUTPUT);
     pinMode(27,OUTPUT);
@@ -80,6 +90,8 @@ void setup() {
     pinMode(33,OUTPUT);
     pinMode(35,OUTPUT);
     pinMode(37,OUTPUT);
+    
+    leds.begin();
   }
 
 void loop() {
