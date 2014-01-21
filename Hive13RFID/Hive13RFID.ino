@@ -111,7 +111,7 @@ void loop() {
       if (err >= 0) {
         Serial.print("Badge receievd status code: ");
         Serial.println(err);
-        if (err = 200) {
+        if (err == 200) {
            // Door Response is OK.  Open the door... 
            Serial.println("Ok to open door...");
            digitalWrite(6, LOW);
