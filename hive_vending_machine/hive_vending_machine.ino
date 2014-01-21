@@ -160,10 +160,85 @@ void loop() {
     val = digitalRead(28);
     Serial.print(val);
     digitalWrite(31,val);
-    val = 0;
-    val = digitalRead(30);
+    val = 0;val = digitalRead(30);
     Serial.print(val);
-    digitalWrite(29,val);
+    if(val == 0) {
+      uint32_t randomLedsColor = Wheel(random(0, 255));
+      Serial.print("Wooo colors!");
+      randomColors(20, 5);
+      Serial.print("Colors done, turning off!");
+      turnOffLeds();
+      Serial.print("Vending random soda!");
+      switch(random(1, 9)) {
+        case 1:
+          leds.setPixelColor(18, randomLedsColor);
+          leds.setPixelColor(19, randomLedsColor);
+          leds.show();
+          digitalWrite(37,0);
+          Serial.print("Random soda is 1!\n");
+          delay(1000);
+          break;
+        case 2:
+          leds.setPixelColor(17, randomLedsColor);
+          leds.setPixelColor(16, randomLedsColor);
+          leds.show();
+          digitalWrite(35,0);
+          Serial.print("Random soda is 2!\n");
+          delay(1000);
+          break;
+        case 3:
+          leds.setPixelColor(15, randomLedsColor);
+          leds.setPixelColor(14, randomLedsColor);
+          leds.show();
+          digitalWrite(33,0);
+          Serial.print("Random soda is 3!\n");
+          delay(1000);
+          break;
+        case 4:
+          leds.setPixelColor(13, randomLedsColor);
+          leds.setPixelColor(12, randomLedsColor);
+          leds.show();
+          digitalWrite(31,0);
+          Serial.print("Random soda is 4!\n");
+          delay(1000);
+          break;
+        case 5:
+          leds.setPixelColor(11, randomLedsColor);
+          leds.setPixelColor(10, randomLedsColor);
+          leds.show();
+          digitalWrite(29,0);
+          Serial.print("Random soda is 5!\n");
+          delay(1000);
+          break;
+        case 6:
+          leds.setPixelColor(9, randomLedsColor);
+          leds.setPixelColor(8, randomLedsColor);
+          leds.show();
+          digitalWrite(27,0);
+          Serial.print("Random soda is 6!\n");
+          delay(1000);
+          break;
+        case 7:
+          leds.setPixelColor(7, randomLedsColor);
+          leds.setPixelColor(6, randomLedsColor);
+          leds.show();
+          digitalWrite(25,0);
+          Serial.print("Random soda is 7\n");
+          delay(1000);
+          break;
+        case 8:
+          digitalWrite(23,0);
+          leds.setPixelColor(4, randomLedsColor);
+          leds.setPixelColor(5, randomLedsColor);
+          leds.show();
+          Serial.print("Random soda is 8\n");
+          delay(1000);
+          break;
+      }
+      turnOffLeds();
+    }
+    // if we don't reset pin 29 (relay for button 5) it will get stuck on.
+    digitalWrite(29,1);
     val = 0;
     val = digitalRead(32);
     Serial.print(val);
@@ -176,4 +251,74 @@ void loop() {
     val = digitalRead(36);
     Serial.println(val);
     digitalWrite(23,val);
+}
+
+
+void rainbowCycle(uint8_t wait) {
+  int i, j;
+  
+  for (j=0; j < 256 * 5; j+=5) { // 5 cycles of all 25 colors in the wheel
+    for (i=0; i < leds.numPixels(); i++) {
+      // tricky math! we use each pixel as a fraction of the full 96-color wheel
+      // (thats the i / strip.numPixels() part)
+      // Then add in j which makes the colors go around per pixel
+      // the % 96 is to make the wheel cycle around
+      leds.setPixelColor(i, Wheel( ((i * 256 / leds.numPixels()) + j) % 256) );
+    }
+    leds.show(); // write all the pixels out
+    delay(wait);
+    Serial.println("Rainbow!");
+  }
+}
+
+void randomColors(uint8_t wait, uint8_t numberCycles) {
+  int i;
+  int randomLeds;
+  uint32_t randomLedsColor;
+  for(i=0; i < numberCycles*leds.numPixels(); i++) {
+    randomLeds = random(0, 8);
+    randomLedsColor = Wheel(random(0, 255));
+    // Set groups of two to the same color. The +4 is to make the 16 out of 20 that turn on the end ones.
+    leds.setPixelColor(randomLeds*2+4, randomLedsColor);
+    leds.setPixelColor(randomLeds*2+1+4, randomLedsColor);
+    leds.show();
+    delay(wait);
+  }
+}
+
+void turnOffLeds() {
+  int i;
+  for(i=0; i < leds.numPixels(); i++) {
+      leds.setPixelColor(i, 0, 0, 0);
+  }
+  leds.show();
+}
+
+/* Helper functions */
+
+// Create a 24 bit color value from R,G,B
+uint32_t Color(byte r, byte g, byte b)
+{
+  uint32_t c;
+  c = r;
+  c <<= 8;
+  c |= g;
+  c <<= 8;
+  c |= b;
+  return c;
+}
+
+//Input a value 0 to 255 to get a color value.
+//The colours are a transition r - g -b - back to r
+uint32_t Wheel(byte WheelPos)
+{
+  if (WheelPos < 85) {
+   return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+  } else if (WheelPos < 170) {
+   WheelPos -= 85;
+   return Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  } else {
+   WheelPos -= 170;
+   return Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
 }
