@@ -152,7 +152,7 @@ void loop() {
       Serial.print("Button value is: ");
       Serial.print(buttonValue);
       // Soda button 30 is the random button
-      if(sodaButtons[i][0] == 30) {
+      if(sodaButtons[i][0] == 30 && buttonValue == 0) {
         // Pick the color that the chosen soda will be
         uint32_t randomSodaColor = Wheel(random(0, 255));
         Serial.print("Wooo colors!");
