@@ -141,16 +141,26 @@ void loop() {
           }
         } else {
           Serial.println("Badge Connection FAILED.");
-    }
+        }
     }
     // Cycle through all eight buttons, check their values, and do the appropriate event
     for(int i=0; i<=7; i++) {
+      // For Ryan: If buttons 1 and 3 are pressed at the same time then vend the fifth soda.
+      // This is the soda that normally would have vended with the button that random currently takes.
+      if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[2][0])) {
+        // turn off relays for soda 0 and 2 if they weren't pressed exactly together
+        digitalWrite(sodaButtons[0][1], 1);
+        digitalWrite(sodaButtons[2][1], 1);
+        // turn on the relay for soda 4
+        digitalWrite(sodaButtons[4][1], 0);
+        break;
+      }
       // buttonValue is 0 if that button has been pressed.
       // Not sure why it is reset to 0 every loop, but that is how the original code was - JDN
       buttonValue = 0;
       buttonValue = digitalRead(sodaButtons[i][0]);
-      Serial.print("Button value is: ");
-      Serial.print(buttonValue);
+      //Serial.print("Button value is: ");
+      //Serial.print(buttonValue);
       // Soda button 30 is the random button
       if(sodaButtons[i][0] == 30 && buttonValue == 0) {
         // Pick the color that the chosen soda will be
