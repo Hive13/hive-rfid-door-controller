@@ -23,6 +23,18 @@ Adafruit_WS2801 leds = Adafruit_WS2801(20, dataPin, clockPin);
 
 int val = 0;
 int randomSoda = 1;
+int buttonValue = 0;
+
+// All eight soda buttons where 0 is the top button and 7 is the bottom button.
+// In a format of switch pin number, relay pin number, and then the two led numbers
+int sodaButtons[8][4] = {{22, 37, 18, 19},
+                         {24, 35, 16, 17},
+                         {26, 33, 14, 15},
+                         {28, 31, 12, 13},
+                         {30, 29, 10, 11},
+                         {32, 27, 8, 9},
+                         {34, 25, 6, 7},
+                         {36, 23, 4, 5}};
 
 void setup() {
     Serial.begin(57600);
@@ -64,23 +76,11 @@ void setup() {
     pinMode(7, OUTPUT);
     pinMode(8, OUTPUT);
     pinMode(9, OUTPUT);
-    // soda buttons
-    pinMode(22,INPUT);
-    digitalWrite(22,HIGH);
-    pinMode(24,INPUT);
-    digitalWrite(24,HIGH);
-    pinMode(26,INPUT);
-    digitalWrite(26,HIGH);
-    pinMode(28,INPUT);
-    digitalWrite(28,HIGH);
-    pinMode(30,INPUT);
-    digitalWrite(30,HIGH);
-    pinMode(32,INPUT);
-    digitalWrite(32,HIGH);
-    pinMode(34,INPUT);
-    digitalWrite(34,HIGH);
-    pinMode(36,INPUT);
-    digitalWrite(36,HIGH);
+    // Set soda button switch pins to input and pull them high
+    for(int i = 0; i < 8; i++) {
+      pinMode(sodaButtons[i][0], INPUT);
+      digitalWrite(sodaButtons[i][0], HIGH);
+    }
     // soda relays
     pinMode(23,OUTPUT);
     pinMode(25,OUTPUT);
@@ -143,117 +143,43 @@ void loop() {
           Serial.println("Badge Connection FAILED.");
     }
     }
-    // TODO: Make a mapping of soda button inputs to their appropriate relays.
-    val = 0;
-    val = digitalRead(22);
-    Serial.print("Channel Value is ");
-    Serial.print(val);
-    digitalWrite(37,val);
-    val = 0;
-    val = digitalRead(24);
-    Serial.print(val);
-    digitalWrite(35,val);
-    val = 0;
-    val = digitalRead(26);
-    Serial.print(val);
-    digitalWrite(33,val);
-    val = 0;
-    val = digitalRead(28);
-    Serial.print(val);
-    digitalWrite(31,val);
-    val = 0;
-    val = digitalRead(30);
-    Serial.print(val);
-    // TODO: parametize this in to more functions so it is easier to read and adapt.
-    if(val == 0) {
-      uint32_t randomLedsColor = Wheel(random(0, 255));
-      Serial.print("Wooo colors!");
-      randomColors(20, 5);
-      Serial.print("Colors done, turning off!");
-      turnOffLeds();
-      Serial.print("Vending random soda!");
-      switch(random(1, 9)) {
-        case 1:
-          leds.setPixelColor(18, randomLedsColor);
-          leds.setPixelColor(19, randomLedsColor);
-          leds.show();
-          digitalWrite(37,0);
-          Serial.print("Random soda is 1!\n");
-          delay(1000);
-          break;
-        case 2:
-          leds.setPixelColor(17, randomLedsColor);
-          leds.setPixelColor(16, randomLedsColor);
-          leds.show();
-          digitalWrite(35,0);
-          Serial.print("Random soda is 2!\n");
-          delay(1000);
-          break;
-        case 3:
-          leds.setPixelColor(15, randomLedsColor);
-          leds.setPixelColor(14, randomLedsColor);
-          leds.show();
-          digitalWrite(33,0);
-          Serial.print("Random soda is 3!\n");
-          delay(1000);
-          break;
-        case 4:
-          leds.setPixelColor(13, randomLedsColor);
-          leds.setPixelColor(12, randomLedsColor);
-          leds.show();
-          digitalWrite(31,0);
-          Serial.print("Random soda is 4!\n");
-          delay(1000);
-          break;
-        case 5:
-          leds.setPixelColor(11, randomLedsColor);
-          leds.setPixelColor(10, randomLedsColor);
-          leds.show();
-          digitalWrite(29,0);
-          Serial.print("Random soda is 5!\n");
-          delay(1000);
-          break;
-        case 6:
-          leds.setPixelColor(9, randomLedsColor);
-          leds.setPixelColor(8, randomLedsColor);
-          leds.show();
-          digitalWrite(27,0);
-          Serial.print("Random soda is 6!\n");
-          delay(1000);
-          break;
-        case 7:
-          leds.setPixelColor(7, randomLedsColor);
-          leds.setPixelColor(6, randomLedsColor);
-          leds.show();
-          digitalWrite(25,0);
-          Serial.print("Random soda is 7\n");
-          delay(1000);
-          break;
-        case 8:
-          digitalWrite(23,0);
-          leds.setPixelColor(4, randomLedsColor);
-          leds.setPixelColor(5, randomLedsColor);
-          leds.show();
-          Serial.print("Random soda is 8\n");
-          delay(1000);
-          break;
+    // Cycle through all eight buttons, check their values, and do the appropriate event
+    for(int i=0; i<=7; i++) {
+      // buttonValue is 0 if that button has been pressed.
+      // Not sure why it is reset to 0 every loop, but that is how the original code was - JDN
+      buttonValue = 0;
+      buttonValue = digitalRead(sodaButtons[i][0]);
+      Serial.print("Button value is: ");
+      Serial.print(buttonValue);
+      // Soda button 30 is the random button
+      if(sodaButtons[i][0] == 30) {
+        // Pick the color that the chosen soda will be
+        uint32_t randomSodaColor = Wheel(random(0, 255));
+        Serial.print("Wooo colors!");
+        // Display the light show
+        randomColors(20, 5);
+        Serial.print("Colors done, turning off!");
+        turnOffLeds();
+        Serial.print("Vending random soda!");
+        // Choose the random soda to vend
+        int randomSoda = random(0, 8);
+        leds.setPixelColor(sodaButtons[randomSoda][2], randomSodaColor);
+        leds.setPixelColor(sodaButtons[randomSoda][3], randomSodaColor);
+        leds.show();
+        digitalWrite(sodaButtons[randomSoda][1],0);
+        Serial.print("Random soda is ");
+        Serial.print(randomSoda);
+        Serial.print("!\n");
+        // Let the chosen soda stay lit for one second
+        delay(1000);
+        // Turn off the LED
+        turnOffLeds();
+      } else {
+        digitalWrite(sodaButtons[i][1], buttonValue);
       }
-      turnOffLeds();
     }
-    // if we don't reset pin 29 (relay for button 5) it will get stuck on.
-    digitalWrite(29,1);
-    val = 0;
-    val = digitalRead(32);
-    Serial.print(val);
-    digitalWrite(27,val);
-    val = 0;
-    val = digitalRead(34);
-    Serial.print(val);
-    digitalWrite(25,val);
-    val = 0;
-    val = digitalRead(36);
-    Serial.println(val);
-    digitalWrite(23,val);
+    // Turn off all LEDs after every cycle just as general house keeping.
+    turnOffLeds();
 }
 
 /* LED Helper functions */
