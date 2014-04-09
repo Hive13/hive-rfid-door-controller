@@ -88,8 +88,9 @@ void loop() {
   unsigned long badgeID = 0;
   boolean cached = false;
   
-  digitalWrite(13, HIGH);
   digitalWrite(6, HIGH);
+  // Turn off buzzer in case it has been left on
+  digitalWrite(13, HIGH);
   digitalWrite(12, HIGH);
   if(wg.available())
   {
@@ -106,17 +107,18 @@ void loop() {
     Serial.print(" readCount = ");
     Serial.print(readCount);
     Serial.println();
-    // if valid, open...
     
     badgeID = wg.getCode();
     // Check to see if the user has been cached
     for(int i = 0; i < 100; i++) {
-      if(usersCache[i] == badgeID) {
+      if(usersCache[i] == badgeID && usersCache[i] > 0) {
         // If it has been cached open the door.
         Serial.println("Verified via cache ok to open door...");
         cached = true;
+        // switch the relay to open the door.
         digitalWrite(6, LOW);
         delay(350);
+        // beep buzzer for up to 50 cycles or until the magnetic switch/door has been opened.
         digitalWrite(13, LOW);
         digitalWrite(12, LOW);
         int count=0;
@@ -131,13 +133,16 @@ void loop() {
           if(analogRead(A0) != sensorValue){
             break;
           }
-          count++;  
+          count++;
         }
+        // turn off buzzer now otherwise it will take a second or two for the loop to complete and turn it off.
+        digitalWrite(13, HIGH);
+        digitalWrite(12, HIGH);
       }
     }
     String bPath = "/doorcheck/";
     bPath = bPath + badgeID,HEX;
-    bPath = bPath + "/"
+    bPath = bPath + "/";
     bPath = bPath + readCount;
     bPath = bPath + "/";
     bPath = bPath + openCount;
@@ -158,8 +163,10 @@ void loop() {
            if(cached == false) {
              // Door Response is OK.  Open the door...
              Serial.println("Ok to open door...");
+             // Switch relay to open the door
              digitalWrite(6, LOW);
              delay(350);
+             // beep buzzer for up to 50 cycles or until the magnetic switch/door has been opened.
              digitalWrite(13, LOW);
              digitalWrite(12, LOW);
              int count=0;
