@@ -19,6 +19,8 @@
 #define TEMPERATURE_PIN (-1)
 #define TEMPERATURE_UPDATE_INTERVAL 10000
 
+#define RANDOM_SODA_BUTTON 30
+
 WIEGAND wg;
 byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
 const char kHostname[] = "door.at.hive13.org";
@@ -28,8 +30,6 @@ uint8_t clockPin = 38; // blue wire
 Adafruit_WS2801 leds = Adafruit_WS2801(20, dataPin, clockPin);
 OneWire ds(TEMPERATURE_PIN);
 
-int randomSoda = 1;
-int buttonValue = 0;
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and then the two led numbers
@@ -41,6 +41,8 @@ int sodaButtons[8][4] = {{22, 37, 18, 19},
                          {32, 27, 8, 9},
                          {34, 25, 6, 7},
                          {36, 23, 4, 5}};
+
+#define SODA_COUNT (sizeof(sodaButtons) / sizeof(sodaButtons[0]))
 
 void setup() {
 	EthernetClient c;
@@ -87,13 +89,25 @@ void setup() {
 		Set soda button switch pins to input and pull them high
 		Set soda relay pins to output
 	*/
-	for(i = 0; i < sizeof(sodaButtons) / sizeof(sodaButtons[0]); i++) {
+	for(i = 0; i < SODA_COUNT; i++) {
 		pinMode(sodaButtons[i][0], INPUT);
 		digitalWrite(sodaButtons[i][0], HIGH);
 		pinMode(sodaButtons[i][1], OUTPUT);
 	}
 
 	leds.begin();
+}
+
+void do_vend(void) {
+	Serial.println("Vending.");
+	digitalWrite(7, LOW);
+	digitalWrite(8, HIGH);
+	digitalWrite(9, LOW);
+	delay(100);
+	digitalWrite(8, LOW);
+	digitalWrite(9, HIGH);
+	delay(900);
+	digitalWrite(7, HIGH);
 }
 
 float get_temperature(void) {
@@ -157,7 +171,7 @@ void handle_temperature() {
 void loop() {
 	char host_path[255];
 	unsigned int code, randomSodaColor;
-	int err, randomSoda, i;
+	int err, randomSoda, i, buttonValue;
 	EthernetClient c;
 	HttpClient http(c);
 	
@@ -185,16 +199,7 @@ void loop() {
 				Serial.print("Badge receievd status code: ");
 				Serial.println(err);
 				if (err == 200) {
-					// Door Response is OK.  vend!!
-					Serial.println("Ok to vend");
-					digitalWrite(7, LOW);
-					digitalWrite(8, HIGH);
-					digitalWrite(9, LOW);
-					delay(100);
-					digitalWrite(8, LOW);
-					digitalWrite(9, HIGH);
-					delay(900);
-					digitalWrite(7, HIGH);
+					do_vend();
 				} else {
 					Serial.println("Didn't receive the OK to vend...");
 				}
@@ -206,7 +211,7 @@ void loop() {
 		}
 	}
 	// Cycle through all eight buttons, check their values, and do the appropriate event
-	for(i = 0; i < sizeof(sodaButtons) / sizeof(sodaButtons[0]); i++) {
+	for(i = 0; i < SODA_COUNT; i++) {
 		// For Ryan: If buttons 1 and 3 are pressed at the same time then vend the fifth soda.
 		// This is the soda that normally would have vended with the button that random currently takes.
 		if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[2][0])) {
@@ -217,14 +222,11 @@ void loop() {
 			digitalWrite(sodaButtons[4][1], 0);
 			break;
 		}
-		// buttonValue is 0 if that button has been pressed.
-		// Not sure why it is reset to 0 every loop, but that is how the original code was - JDN
-		buttonValue = 0;
+
 		buttonValue = digitalRead(sodaButtons[i][0]);
 		//Serial.print("Button value is: ");
 		//Serial.print(buttonValue);
-		// Soda button 30 is the random button
-		if(sodaButtons[i][0] == 30 && buttonValue == 0) {
+		if(sodaButtons[i][0] == RANDOM_SODA_BUTTON && buttonValue == 0) {
 			// Pick the color that the chosen soda will be
 			randomSodaColor = Wheel(random(0, 255));
 			Serial.print("Wooo colors!");
@@ -234,11 +236,11 @@ void loop() {
 			turnOffLeds();
 			Serial.print("Vending random soda!");
 			// Choose the random soda to vend
-			randomSoda = random(0, 8);
+			randomSoda = random(0, SODA_COUNT);
 			leds.setPixelColor(sodaButtons[randomSoda][2], randomSodaColor);
 			leds.setPixelColor(sodaButtons[randomSoda][3], randomSodaColor);
 			leds.show();
-			digitalWrite(sodaButtons[randomSoda][1],0);
+			digitalWrite(sodaButtons[randomSoda][1], 0);
 			Serial.print("Random soda is ");
 			Serial.print(randomSoda);
 			Serial.print("!\n");
