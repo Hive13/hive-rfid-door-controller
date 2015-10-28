@@ -9,18 +9,14 @@
 // https://github.com/adafruit/Adafruit-WS2801-Library
 #include <Adafruit_WS2801.h>
 
-
 WIEGAND wg;
 byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
-char server[] = "172.16.3.233";
-IPAddress ip(172,16,2,254);
-EthernetClient client;
+const char kHostname[] = "door.at.hive13.org";
 
 uint8_t dataPin = 39;  // green wire
 uint8_t clockPin = 38; // blue wire
 Adafruit_WS2801 leds = Adafruit_WS2801(20, dataPin, clockPin);
 
-int val = 0;
 int randomSoda = 1;
 int buttonValue = 0;
 
@@ -36,21 +32,21 @@ int sodaButtons[8][4] = {{22, 37, 18, 19},
                          {36, 23, 4, 5}};
 
 void setup() {
+	EthernetClient c;
+	HttpClient http(c);
+	int err = 0, i;
+	const char kPath[] = "/vendtest";
+
 	Serial.begin(57600);
 	// Let's set up the Ethernet Connections
-	Serial.println("Hive13 Vending Arduino Shiled v.02");
+	Serial.println("Hive13 Vending Arduino Shiled v.03");
 	Serial.println("Initializing Ethernet Controller.");
 	while (Ethernet.begin(mac) != 1) {
 		Serial.println("Error obtaining DHCP address.  Let's wait a second and try again");
 		delay(1000);
 	}
-	Serial.println("Attempting to make static connection to Door to ensure connectivity.");
 	
-	EthernetClient c;
-	HttpClient http(c);
-	int err = 0;
-	const char kHostname[] = "door.at.hive13.org";
-	const char kPath [] = "/vendtest";
+	Serial.println("Attempting to make static connection to Door to ensure connectivity.");
 	//TODO:  Implement MOAR DOORS...
 	
 	err = http.get(kHostname, kPath);
@@ -73,44 +69,42 @@ void setup() {
 	pinMode(7, OUTPUT);
 	pinMode(8, OUTPUT);
 	pinMode(9, OUTPUT);
-	// Set soda button switch pins to input and pull them high
-	for(int i = 0; i < 8; i++) {
+	
+	/*
+		Set soda button switch pins to input and pull them high
+		Set soda relay pins to output
+	*/
+	for(i = 0; i < sizeof(sodaButtons) / sizeof(sodaButtons[0]); i++) {
 		pinMode(sodaButtons[i][0], INPUT);
 		digitalWrite(sodaButtons[i][0], HIGH);
+		pinMode(sodaButtons[i][1], OUTPUT);
 	}
-	// soda relays
-	pinMode(23,OUTPUT);
-	pinMode(25,OUTPUT);
-	pinMode(27,OUTPUT);
-	pinMode(29,OUTPUT);
-	pinMode(31,OUTPUT);
-	pinMode(33,OUTPUT);
-	pinMode(35,OUTPUT);
-	pinMode(37,OUTPUT);
-	
+
 	leds.begin();
 }
 
 void loop() {
+	char host_path[255];
+	unsigned int code, randomSodaColor;
+	int err, randomSoda, i;
+	EthernetClient c;
+	HttpClient http(c);
+	
 	digitalWrite(7, HIGH);
 	digitalWrite(8, LOW);
 	digitalWrite(9, HIGH);
+
 	if(wg.available()) {
+		code = wg.getCode();
 		Serial.print("Wiegand HEX = ");
-		Serial.print(wg.getCode(),HEX);
+		Serial.print(code, HEX);
 		Serial.print(", DECIMAL = ");
-		Serial.print(wg.getCode());
+		Serial.print(code);
 		Serial.print(", Type W");
 		Serial.println(wg.getWiegandType());
 		// This is what we do when we actually get the OK to vend...
-		String bPath = "/vendcheck/";
-		bPath = bPath + wg.getCode();
-		bPath = bPath + "/go";
-		EthernetClient c;
-		HttpClient http(c);
-		int err = 0;
-		const char kHostname[] = "door.at.hive13.org";
-		err = http.get(kHostname, bPath.c_str());
+		snprintf(host_path, sizeof(host_path), "/vendcheck/%d/go", code);
+		err = http.get(kHostname, host_path);
 		if (err == 0) {
 			Serial.println("RFID Badge Connection OK");
 			err = http.responseStatusCode();
@@ -120,14 +114,14 @@ void loop() {
 				if (err == 200) {
 					// Door Response is OK.  vend!!
 					Serial.println("Ok to vend");
-					digitalWrite(7,LOW);
+					digitalWrite(7, LOW);
 					digitalWrite(8, HIGH);
 					digitalWrite(9, LOW);
 					delay(100);
 					digitalWrite(8, LOW);
 					digitalWrite(9, HIGH);
 					delay(900);
-					digitalWrite(7,HIGH);
+					digitalWrite(7, HIGH);
 				} else {
 					Serial.println("Didn't receive the OK to vend...");
 				}
@@ -139,7 +133,7 @@ void loop() {
 		}
 	}
 	// Cycle through all eight buttons, check their values, and do the appropriate event
-	for(int i=0; i<=7; i++) {
+	for(i = 0; i < sizeof(sodaButtons) / sizeof(sodaButtons[0]); i++) {
 		// For Ryan: If buttons 1 and 3 are pressed at the same time then vend the fifth soda.
 		// This is the soda that normally would have vended with the button that random currently takes.
 		if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[2][0])) {
@@ -159,7 +153,7 @@ void loop() {
 		// Soda button 30 is the random button
 		if(sodaButtons[i][0] == 30 && buttonValue == 0) {
 			// Pick the color that the chosen soda will be
-			uint32_t randomSodaColor = Wheel(random(0, 255));
+			randomSodaColor = Wheel(random(0, 255));
 			Serial.print("Wooo colors!");
 			// Display the light show
 			randomColors(20, 5);
@@ -167,7 +161,7 @@ void loop() {
 			turnOffLeds();
 			Serial.print("Vending random soda!");
 			// Choose the random soda to vend
-			int randomSoda = random(0, 8);
+			randomSoda = random(0, 8);
 			leds.setPixelColor(sodaButtons[randomSoda][2], randomSodaColor);
 			leds.setPixelColor(sodaButtons[randomSoda][3], randomSodaColor);
 			leds.show();
@@ -192,8 +186,8 @@ void loop() {
 void rainbowCycle(uint8_t wait) {
 	int i, j;
 	
-	for (j=0; j < 256 * 5; j+=5) { // 5 cycles of all 25 colors in the wheel
-		for (i=0; i < leds.numPixels(); i++) {
+	for (j = 0; j < 256 * 5; j += 5) { // 5 cycles of all 25 colors in the wheel
+		for (i = 0; i < leds.numPixels(); i++) {
 			// tricky math! we use each pixel as a fraction of the full 96-color wheel
 			// (thats the i / strip.numPixels() part)
 			// Then add in j which makes the colors go around per pixel
@@ -207,18 +201,18 @@ void rainbowCycle(uint8_t wait) {
 }
 
 void randomColors(uint8_t wait, uint8_t numberCycles) {
-	int i;
-	int randomLeds;
-	uint32_t randomLedsColor;
-	for(i=0; i < numberCycles*leds.numPixels(); i++) {
-		randomLeds = random(0, 8);
-		randomLedsColor = Wheel(random(0, 255));
-		// Set groups of two to the same color. The +4 is to make the 16 out of 20 that turn on the end ones.
-		leds.setPixelColor(randomLeds*2+4, randomLedsColor);
-		leds.setPixelColor(randomLeds*2+1+4, randomLedsColor);
-		leds.show();
-		delay(wait);
-	}
+  int i;
+  int randomLeds;
+  uint32_t randomLedsColor;
+  for(i = 0; i < numberCycles * leds.numPixels(); i++) {
+    randomLeds = random(0, 8);
+    randomLedsColor = Wheel(random(0, 255));
+    // Set groups of two to the same color. The +4 is to make the 16 out of 20 that turn on the end ones.
+    leds.setPixelColor(randomLeds * 2 + 4, randomLedsColor);
+    leds.setPixelColor(randomLeds * 2 + 1 + 4, randomLedsColor);
+    leds.show();
+    delay(wait);
+  }
 }
 
 void turnOffLeds() {
