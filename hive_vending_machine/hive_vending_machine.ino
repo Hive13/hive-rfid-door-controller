@@ -8,6 +8,16 @@
 #include <HttpClient.h>
 // https://github.com/adafruit/Adafruit-WS2801-Library
 #include <Adafruit_WS2801.h>
+// https://github.com/PaulStoffregen/OneWire
+#include <OneWire.h>
+
+#define COMPRESSOR_RELAY (-1)
+#define COMPRESSOR_ON 38.0
+#define COMPRESSOR_OFF 34.0
+#define COMPRESSOR_ON_DELAY_MILLIS 30000
+
+#define TEMPERATURE_PIN (-1)
+#define TEMPERATURE_UPDATE_INTERVAL 10000
 
 WIEGAND wg;
 byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
@@ -16,6 +26,7 @@ const char kHostname[] = "door.at.hive13.org";
 uint8_t dataPin = 39;  // green wire
 uint8_t clockPin = 38; // blue wire
 Adafruit_WS2801 leds = Adafruit_WS2801(20, dataPin, clockPin);
+OneWire ds(TEMPERATURE_PIN);
 
 int randomSoda = 1;
 int buttonValue = 0;
@@ -69,6 +80,8 @@ void setup() {
 	pinMode(7, OUTPUT);
 	pinMode(8, OUTPUT);
 	pinMode(9, OUTPUT);
+	pinMode(COMPRESSOR_RELAY, OUTPUT);
+	digitalWrite(COMPRESSOR_RELAY, LOW);
 	
 	/*
 		Set soda button switch pins to input and pull them high
@@ -83,6 +96,64 @@ void setup() {
 	leds.begin();
 }
 
+float get_temperature(void) {
+	//returns the temperature from one DS18S20 in Fahrenheit
+	byte data[12], addr[8], present;
+	float tempRead;
+	
+	if (!ds.search(addr)) {
+		//no more sensors on chain, reset search
+		ds.reset_search();
+		return 1000;
+	}
+	
+	if (OneWire::crc8(addr, 7) != addr[7]) {
+		Serial.println("CRC is not valid!");
+		return 1000;
+	}
+	
+	if (addr[0] != 0x10 && addr[0] != 0x28) {
+		Serial.print("Device is not recognized");
+		return 1000;
+	}
+	
+	ds.reset();
+	ds.select(addr);
+	ds.write(0x44,1); // start conversion, with parasite power on at the end
+	
+	present = ds.reset();
+	ds.select(addr);  
+	ds.write(0xBE); // Read Scratchpad
+	
+	for (int i = 0; i < 9; i++) { // we need 9 bytes
+		data[i] = ds.read();
+	}
+	
+	ds.reset_search();
+	
+	tempRead = ((data[1] << 8) | data[0]); //using two's compliment
+	tempRead /= 16;
+	return (tempRead * 1.8 + 32); /* De-suckigrade the temp */
+}
+
+void handle_temperature() {
+	float temp = get_temperature();
+	static unsigned long start_at = 0;
+	char webstr[255];
+	unsigned long m = millis();
+	
+	if (temp <= COMPRESSOR_OFF) {
+		digitalWrite(COMPRESSOR_RELAY, LOW);
+		start_at = m + COMPRESSOR_ON_DELAY_MILLIS;
+	} else if (temp >= COMPRESSOR_ON && start_at <= m) {
+		digitalWrite(COMPRESSOR_RELAY, HIGH);
+	}
+
+	if (!(m % TEMPERATURE_UPDATE_INTERVAL)) {
+		snprintf(webstr, sizeof(webstr), "/tempset/%.1f", temp);
+	}
+}
+
 void loop() {
 	char host_path[255];
 	unsigned int code, randomSodaColor;
@@ -94,6 +165,8 @@ void loop() {
 	digitalWrite(8, LOW);
 	digitalWrite(9, HIGH);
 
+	handle_temperature();
+	
 	if(wg.available()) {
 		code = wg.getCode();
 		Serial.print("Wiegand HEX = ");
