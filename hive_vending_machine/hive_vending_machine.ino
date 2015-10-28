@@ -98,6 +98,33 @@ void setup() {
 	leds.begin();
 }
 
+void do_random_vend(void) {
+	uint32_t randomSodaColor;
+	int randomSoda;
+
+	// Pick the color that the chosen soda will be
+	randomSodaColor = Wheel(random(0, 255));
+	Serial.print("Wooo colors!");
+	// Display the light show
+	randomColors(20, 5);
+	Serial.print("Colors done, turning off!");
+	turnOffLeds();
+	Serial.print("Vending random soda!");
+	// Choose the random soda to vend
+	randomSoda = random(0, SODA_COUNT);
+	leds.setPixelColor(sodaButtons[randomSoda][2], randomSodaColor);
+	leds.setPixelColor(sodaButtons[randomSoda][3], randomSodaColor);
+	leds.show();
+	digitalWrite(sodaButtons[randomSoda][1], 0);
+	Serial.print("Random soda is ");
+	Serial.print(randomSoda);
+	Serial.print("!\n");
+	// Let the chosen soda stay lit for one second
+	delay(1000);
+	// Turn off the LED
+	turnOffLeds();
+}
+
 void do_vend(void) {
 	Serial.println("Vending.");
 	digitalWrite(7, LOW);
@@ -170,8 +197,8 @@ void handle_temperature() {
 
 void loop() {
 	char host_path[255];
-	unsigned int code, randomSodaColor;
-	int err, randomSoda, i, buttonValue;
+	unsigned int code;
+	int err, i, buttonValue;
 	EthernetClient c;
 	HttpClient http(c);
 	
@@ -227,27 +254,7 @@ void loop() {
 		//Serial.print("Button value is: ");
 		//Serial.print(buttonValue);
 		if(sodaButtons[i][0] == RANDOM_SODA_BUTTON && buttonValue == 0) {
-			// Pick the color that the chosen soda will be
-			randomSodaColor = Wheel(random(0, 255));
-			Serial.print("Wooo colors!");
-			// Display the light show
-			randomColors(20, 5);
-			Serial.print("Colors done, turning off!");
-			turnOffLeds();
-			Serial.print("Vending random soda!");
-			// Choose the random soda to vend
-			randomSoda = random(0, SODA_COUNT);
-			leds.setPixelColor(sodaButtons[randomSoda][2], randomSodaColor);
-			leds.setPixelColor(sodaButtons[randomSoda][3], randomSodaColor);
-			leds.show();
-			digitalWrite(sodaButtons[randomSoda][1], 0);
-			Serial.print("Random soda is ");
-			Serial.print(randomSoda);
-			Serial.print("!\n");
-			// Let the chosen soda stay lit for one second
-			delay(1000);
-			// Turn off the LED
-			turnOffLeds();
+			do_random_vend();
 		} else {
 			digitalWrite(sodaButtons[i][1], buttonValue);
 		}
