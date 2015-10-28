@@ -329,3 +329,5 @@ uint32_t Wheel(byte WheelPos) {
 		return Color(0, WheelPos * 3, 255 - WheelPos * 3);
 	}
 }
+
+/* vim:set filetype=c: */
