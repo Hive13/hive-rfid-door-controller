@@ -188,7 +188,7 @@ float get_temperature(void) {
 
 void handle_temperature() {
 	float temp = get_temperature();
-	static unsigned long start_at = 0;
+	static unsigned long start_at = 0, update_temperature_at = 0;
 	char webstr[255];
 	unsigned long m = millis();
 	
@@ -199,7 +199,8 @@ void handle_temperature() {
 		digitalWrite(COMPRESSOR_RELAY, HIGH);
 	}
 
-	if (!(m % TEMPERATURE_UPDATE_INTERVAL)) {
+	if (update_temperature_at <= m) {
+		update_temperature_at = m + TEMPERATURE_UPDATE_INTERVAL;
 		snprintf(webstr, sizeof(webstr), "/tempset/%.1f", temp);
 	}
 }
