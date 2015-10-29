@@ -18,6 +18,7 @@
 
 #define TEMPERATURE_PIN (-1)
 #define TEMPERATURE_UPDATE_INTERVAL 10000
+#define TEMPERATURE_READ_TIME 1000
 
 #define RANDOM_SODA_BUTTON 30
 
@@ -29,6 +30,7 @@ uint8_t dataPin = 39;  // green wire
 uint8_t clockPin = 38; // blue wire
 Adafruit_WS2801 leds = Adafruit_WS2801(20, dataPin, clockPin);
 OneWire ds(TEMPERATURE_PIN);
+byte addr[8];
 
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
@@ -53,6 +55,8 @@ void setup() {
 	Serial.begin(57600);
 	// Let's set up the Ethernet Connections
 	Serial.println("Hive13 Vending Arduino Shiled v.03");
+	Serial.print(SODA_COUNT)
+	Serial.println(" sodas configured.")
 	Serial.println("Initializing Ethernet Controller.");
 	while (Ethernet.begin(mac) != 1) {
 		Serial.println("Error obtaining DHCP address.  Let's wait a second and try again");
@@ -137,30 +141,33 @@ void do_vend(void) {
 	digitalWrite(7, HIGH);
 }
 
-float get_temperature(void) {
-	//returns the temperature from one DS18S20 in Fahrenheit
-	byte data[12], addr[8], present;
-	float tempRead;
-	
+char start_read_temperature(void) {
 	if (!ds.search(addr)) {
 		//no more sensors on chain, reset search
 		ds.reset_search();
-		return 1000;
+		return -1;
 	}
 	
 	if (OneWire::crc8(addr, 7) != addr[7]) {
 		Serial.println("CRC is not valid!");
-		return 1000;
+		return -1;
 	}
 	
 	if (addr[0] != 0x10 && addr[0] != 0x28) {
 		Serial.print("Device is not recognized");
-		return 1000;
+		return -1;
 	}
 	
 	ds.reset();
 	ds.select(addr);
-	ds.write(0x44,1); // start conversion, with parasite power on at the end
+	ds.write(0x44);
+	return 0;
+}
+
+float get_temperature(void) {
+	//returns the temperature from one DS18S20 in Fahrenheit
+	byte data[12], present;
+	float tempRead;
 	
 	present = ds.reset();
 	ds.select(addr);  
@@ -196,17 +203,23 @@ void handle_temperature() {
 }
 
 void loop() {
-	char host_path[255];
-	unsigned int code;
+	char host_path[255], c;
+	unsigned int code, m = millis();
 	int err, i, buttonValue;
+	static unsigned int temp_ready_time = 0;
 	EthernetClient c;
 	HttpClient http(c);
 	
 	digitalWrite(7, HIGH);
 	digitalWrite(8, LOW);
 	digitalWrite(9, HIGH);
-
-	handle_temperature();
+	
+	if (!temp_ready_time) {
+		c = start_read_temperature();
+		if (!c)
+			temp_ready_time = m + TEMPERATURE_READ_TIME;
+	} else if (temp_ready_time <= m)
+		handle_temperature();
 	
 	if(wg.available()) {
 		code = wg.getCode();
