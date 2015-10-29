@@ -35,14 +35,16 @@ byte addr[8];
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and then the two led numbers
-int sodaButtons[8][4] = {{22, 37, 18, 19},
-                         {24, 35, 16, 17},
-                         {26, 33, 14, 15},
-                         {28, 31, 12, 13},
-                         {30, 29, 10, 11},
-                         {32, 27, 8, 9},
-                         {34, 25, 6, 7},
-                         {36, 23, 4, 5}};
+int sodaButtons[8][4] = {
+	{22, 37, 18, 19},
+	{24, 35, 16, 17},
+	{26, 33, 14, 15},
+	{28, 31, 12, 13},
+	{30, 29, 10, 11},
+	{32, 27, 8, 9},
+	{34, 25, 6, 7},
+	{36, 23, 4, 5},
+};
 
 #define SODA_COUNT (sizeof(sodaButtons) / sizeof(sodaButtons[0]))
 
