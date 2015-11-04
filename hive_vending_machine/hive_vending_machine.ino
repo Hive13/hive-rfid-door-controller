@@ -303,10 +303,7 @@ void loop()
 				}
 			else
 				{
-				if (pressed == i)
-					{
-					}
-				else
+				if (pressed != i)
 					{
 					pressed = i;
 					color_at = 0;
@@ -348,20 +345,22 @@ void rainbowCycle(uint8_t wait) {
 	}
 }
 
-void randomColors(uint8_t wait, uint8_t numberCycles) {
-  int i;
-  int randomLeds;
-  uint32_t randomLedsColor;
-  for(i = 0; i < numberCycles * leds.numPixels(); i++) {
-    randomLeds = random(0, 8);
-    randomLedsColor = Wheel(random(0, 255));
-    // Set groups of two to the same color. The +4 is to make the 16 out of 20 that turn on the end ones.
-    leds.setPixelColor(randomLeds * 2 + 4, randomLedsColor);
-    leds.setPixelColor(randomLeds * 2 + 1 + 4, randomLedsColor);
-    leds.show();
-    delay(wait);
-  }
-}
+void randomColors(uint8_t wait, uint8_t numberCycles)
+	{
+	int i;
+	int randomLeds;
+	uint32_t randomLedsColor;
+	for(i = 0; i < numberCycles * leds.numPixels(); i++)
+		{
+		randomLeds = random(0, 8);
+		randomLedsColor = Wheel(random(0, 255));
+		// Set groups of two to the same color. The +4 is to make the 16 out of 20 that turn on the end ones.
+		leds.setPixelColor(randomLeds * 2 + 4, randomLedsColor);
+		leds.setPixelColor(randomLeds * 2 + 1 + 4, randomLedsColor);
+		leds.show();
+		delay(wait);
+		}
+	}
 
 void turnOffLeds(char except)
 	{
