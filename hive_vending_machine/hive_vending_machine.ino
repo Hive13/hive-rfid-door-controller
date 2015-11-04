@@ -20,7 +20,8 @@
 #define TEMPERATURE_UPDATE_INTERVAL 10000
 #define TEMPERATURE_READ_TIME 1000
 
-#define RANDOM_SODA_BUTTON 30
+#define RANDOM_SODA_NUMBER 4
+#define SODA_COUNT (sizeof(sodaButtons) / sizeof(sodaButtons[0]))
 
 WIEGAND wg;
 byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
@@ -46,12 +47,19 @@ int sodaButtons[8][4] = {
 	{36, 23, 4, 5},
 };
 
-#define SODA_COUNT (sizeof(sodaButtons) / sizeof(sodaButtons[0]))
+void set_vend(char c)
+	{
+	char i;
+
+	for (i = 0; i < SODA_COUNT; i++)
+		digitalWrite(sodaButtons[i][1], c != i);
+	}
 
 void setup() {
 	EthernetClient c;
 	HttpClient http(c);
 	int err = 0, i;
+	uint32_t color;
 	const char kPath[] = "/vendtest";
 
 	Serial.begin(57600);
@@ -59,6 +67,15 @@ void setup() {
 	Serial.println("Hive13 Vending Arduino Shield v.03");
 	Serial.print(SODA_COUNT);
 	Serial.println(" sodas configured.");
+	Serial.println("Initializing lights.");
+	leds.begin();
+	for (i = 0; i < SODA_COUNT; i++)
+		{
+		color = Wheel(random(0, 255));
+		leds.setPixelColor(sodaButtons[i][2], color);
+		leds.setPixelColor(sodaButtons[i][3], color);
+		}
+	leds.show();
 	Serial.println("Initializing Ethernet Controller.");
 	while (Ethernet.begin(mac) != 1) {
 		Serial.println("Error obtaining DHCP address.  Let's wait a second and try again");
@@ -101,7 +118,6 @@ void setup() {
 		pinMode(sodaButtons[i][1], OUTPUT);
 	}
 
-	leds.begin();
 }
 
 void do_random_vend(void) {
@@ -114,7 +130,7 @@ void do_random_vend(void) {
 	// Display the light show
 	randomColors(20, 5);
 	Serial.print("Colors done, turning off!");
-	turnOffLeds();
+	turnOffLeds(-1);
 	Serial.print("Vending random soda!");
 	// Choose the random soda to vend
 	randomSoda = random(0, SODA_COUNT);
@@ -128,7 +144,7 @@ void do_random_vend(void) {
 	// Let the chosen soda stay lit for one second
 	delay(1000);
 	// Turn off the LED
-	turnOffLeds();
+	turnOffLeds(-1);
 }
 
 void do_vend(void) {
@@ -205,26 +221,34 @@ void handle_temperature() {
 	}
 }
 
-void loop() {
+void loop()
+	{
 	char host_path[255], ch;
 	unsigned int code, m = millis();
-	int err, i, buttonValue;
+	int err, buttonValue;
 	static unsigned int temp_ready_time = 0;
 	EthernetClient c;
 	HttpClient http(c);
+	char i;
+	uint32_t cur_color;
+	static char pressed = -1;
+	static unsigned char color_at = 0;
 	
 	digitalWrite(7, HIGH);
 	digitalWrite(8, LOW);
 	digitalWrite(9, HIGH);
 	
-	if (!temp_ready_time) {
+	if (!temp_ready_time)
+		{
 		ch = start_read_temperature();
 		if (!ch)
 			temp_ready_time = m + TEMPERATURE_READ_TIME;
-	} else if (temp_ready_time <= m)
+		}
+	else if (temp_ready_time <= m)
 		handle_temperature();
 	
-	if(wg.available()) {
+	if(wg.available())
+		{
 		code = wg.getCode();
 		Serial.print("Wiegand HEX = ");
 		Serial.print(code, HEX);
@@ -235,49 +259,75 @@ void loop() {
 		// This is what we do when we actually get the OK to vend...
 		snprintf(host_path, sizeof(host_path), "/vendcheck/%d/go", code);
 		err = http.get(kHostname, host_path);
-		if (err == 0) {
+		if (err == 0)
+			{
 			Serial.println("RFID Badge Connection OK");
 			err = http.responseStatusCode();
-			if (err >= 0) {
+			if (err >= 0)
+				{
 				Serial.print("Badge receievd status code: ");
 				Serial.println(err);
-				if (err == 200) {
+				if (err == 200)
 					do_vend();
-				} else {
+				else
 					Serial.println("Didn't receive the OK to vend...");
 				}
-			} else {
+			else
 				Serial.println("Err connecting to door controller.");
 			}
-		} else {
+		else
 			Serial.println("Badge Connection FAILED.");
 		}
-	}
 	// Cycle through all eight buttons, check their values, and do the appropriate event
-	for(i = 0; i < SODA_COUNT; i++) {
+	for(i = 0; i < SODA_COUNT; i++)
+		{
 		// For Ryan: If buttons 1 and 3 are pressed at the same time then vend the fifth soda.
 		// This is the soda that normally would have vended with the button that random currently takes.
-		if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[2][0])) {
+		if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[2][0]))
+			{
 			// turn off relays for soda 0 and 2 if they weren't pressed exactly together
 			digitalWrite(sodaButtons[0][1], 1);
 			digitalWrite(sodaButtons[2][1], 1);
 			// turn on the relay for soda 4
 			digitalWrite(sodaButtons[4][1], 0);
 			break;
-		}
+			}
 
-		buttonValue = digitalRead(sodaButtons[i][0]);
-		//Serial.print("Button value is: ");
-		//Serial.print(buttonValue);
-		if(sodaButtons[i][0] == RANDOM_SODA_BUTTON && buttonValue == 0) {
-			do_random_vend();
-		} else {
-			digitalWrite(sodaButtons[i][1], buttonValue);
+		/* Is the current button pressed? */
+		if (!digitalRead(sodaButtons[i][0]))
+			{
+			if(i == RANDOM_SODA_NUMBER)
+				{
+				pressed = -1;
+				do_random_vend();
+				}
+			else
+				{
+				if (pressed == i)
+					{
+					}
+				else
+					{
+					pressed = i;
+					color_at = 0;
+					}
+				cur_color = Wheel(color_at++);
+				leds.setPixelColor(sodaButtons[i][2], cur_color);
+				leds.setPixelColor(sodaButtons[i][3], cur_color);
+				leds.show();
+				set_vend(i);
+				}
+			break;
+			}
 		}
-	}
+	if (i == SODA_COUNT)
+		{
+		pressed = -1;
+		set_vend(-1);
+		}
 	// Turn off all LEDs after every cycle just as general house keeping.
-	turnOffLeds();
-}
+	turnOffLeds(pressed);
+	}
 
 /* LED Helper functions */
 // Most of the LED helper functions taken from adafruit's example code.
@@ -313,13 +363,14 @@ void randomColors(uint8_t wait, uint8_t numberCycles) {
   }
 }
 
-void turnOffLeds() {
-	int i;
-	for(i=0; i < leds.numPixels(); i++) {
-		leds.setPixelColor(i, 0, 0, 0);
-	}
+void turnOffLeds(char except)
+	{
+	char i;
+	for(i = 0; i < leds.numPixels(); i++)
+		if (i != except)
+			leds.setPixelColor(i, 0, 0, 0);
 	leds.show();
-}
+	}
 
 // Create a 24 bit color value from R,G,B
 uint32_t Color(byte r, byte g, byte b) {
