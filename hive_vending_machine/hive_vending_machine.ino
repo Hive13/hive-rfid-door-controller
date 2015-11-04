@@ -343,27 +343,6 @@ void loop()
 	}
 
 /* LED Helper functions */
-// Most of the LED helper functions taken from adafruit's example code.
-void rainbowCycle(uint8_t wait)
-	{
-	int i, j;
-	
-	for (j = 0; j < 256 * 5; j += 5) // 5 cycles of all 25 colors in the wheel
-		{
-		for (i = 0; i < leds.numPixels(); i++)
-			{
-			// tricky math! we use each pixel as a fraction of the full 96-color wheel
-			// (thats the i / strip.numPixels() part)
-			// Then add in j which makes the colors go around per pixel
-			// the % 96 is to make the wheel cycle around
-			leds.setPixelColor(i, Wheel( ((i * 256 / leds.numPixels()) + j) % 256) );
-			}
-		leds.show(); // write all the pixels out
-		delay(wait);
-		Serial.println("Rainbow!");
-		}
-	}
-
 void randomColors(uint8_t wait, uint8_t numberCycles)
 	{
 	int i;
