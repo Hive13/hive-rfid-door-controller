@@ -56,9 +56,9 @@ void setup() {
 
 	Serial.begin(57600);
 	// Let's set up the Ethernet Connections
-	Serial.println("Hive13 Vending Arduino Shiled v.03");
-	Serial.print(SODA_COUNT)
-	Serial.println(" sodas configured.")
+	Serial.println("Hive13 Vending Arduino Shield v.03");
+	Serial.print(SODA_COUNT);
+	Serial.println(" sodas configured.");
 	Serial.println("Initializing Ethernet Controller.");
 	while (Ethernet.begin(mac) != 1) {
 		Serial.println("Error obtaining DHCP address.  Let's wait a second and try again");
@@ -206,7 +206,7 @@ void handle_temperature() {
 }
 
 void loop() {
-	char host_path[255], c;
+	char host_path[255], ch;
 	unsigned int code, m = millis();
 	int err, i, buttonValue;
 	static unsigned int temp_ready_time = 0;
@@ -218,8 +218,8 @@ void loop() {
 	digitalWrite(9, HIGH);
 	
 	if (!temp_ready_time) {
-		c = start_read_temperature();
-		if (!c)
+		ch = start_read_temperature();
+		if (!ch)
 			temp_ready_time = m + TEMPERATURE_READ_TIME;
 	} else if (temp_ready_time <= m)
 		handle_temperature();
