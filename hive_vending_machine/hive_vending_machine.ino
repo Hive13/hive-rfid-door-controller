@@ -285,11 +285,11 @@ void loop()
 		// This is the soda that normally would have vended with the button that random currently takes.
 		if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[2][0]))
 			{
-			// turn off relays for soda 0 and 2 if they weren't pressed exactly together
-			digitalWrite(sodaButtons[0][1], 1);
-			digitalWrite(sodaButtons[2][1], 1);
-			// turn on the relay for soda 4
-			digitalWrite(sodaButtons[4][1], 0);
+			if (pressed != 4)
+				{
+				pressed = 4;
+				color_at = 0;
+				}
 			break;
 			}
 
@@ -308,11 +308,6 @@ void loop()
 					pressed = i;
 					color_at = 0;
 					}
-				cur_color = Wheel(color_at++);
-				leds.setPixelColor(sodaButtons[i][2], cur_color);
-				leds.setPixelColor(sodaButtons[i][3], cur_color);
-				leds.show();
-				set_vend(i);
 				}
 			break;
 			}
@@ -321,6 +316,14 @@ void loop()
 		{
 		pressed = -1;
 		set_vend(-1);
+		}
+	else
+		{
+		set_vend(pressed);
+		cur_color = Wheel(color_at++);
+		leds.setPixelColor(sodaButtons[pressed][2], cur_color);
+		leds.setPixelColor(sodaButtons[pressed][3], cur_color);
+		leds.show();
 		}
 	// Turn off all LEDs after every cycle just as general house keeping.
 	turnOffLeds(pressed);
