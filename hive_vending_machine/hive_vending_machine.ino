@@ -55,7 +55,8 @@ void set_vend(char c)
 		digitalWrite(sodaButtons[i][1], c != i);
 	}
 
-void setup() {
+void setup()
+	{
 	EthernetClient c;
 	HttpClient http(c);
 	int err = 0, i;
@@ -77,28 +78,31 @@ void setup() {
 		}
 	leds.show();
 	Serial.println("Initializing Ethernet Controller.");
-	while (Ethernet.begin(mac) != 1) {
+	while (Ethernet.begin(mac) != 1)
+		{
 		Serial.println("Error obtaining DHCP address.  Let's wait a second and try again");
 		delay(1000);
-	}
+		}
 	
 	Serial.println("Attempting to make static connection to Door to ensure connectivity.");
 	//TODO:  Implement MOAR DOORS...
 	
 	err = http.get(kHostname, kPath);
-	if (err == 0) {
+	if (err == 0)
+		{
 		Serial.println("Vending Machine Test Connection OK");
 		err = http.responseStatusCode();
-		if (err >= 0) {
+		if (err >= 0)
+			{
 			Serial.print("Got Status Code: ");
 			Serial.println(err);
 			// This should be 200 OK.
-		} else {
+			}
+		else
 			Serial.println("Vending Machine Test FAILED to get response headers.");
 		}
-	} else {
+	else
 		Serial.println("Vending Machine Test Connection FAILED.");
-	}
 	
 	wg.begin();
 	// wiegand/rfid reader pins
@@ -112,15 +116,16 @@ void setup() {
 		Set soda button switch pins to input and pull them high
 		Set soda relay pins to output
 	*/
-	for(i = 0; i < SODA_COUNT; i++) {
+	for(i = 0; i < SODA_COUNT; i++)
+		{
 		pinMode(sodaButtons[i][0], INPUT);
 		digitalWrite(sodaButtons[i][0], HIGH);
 		pinMode(sodaButtons[i][1], OUTPUT);
+		}
 	}
 
-}
-
-void do_random_vend(void) {
+void do_random_vend(void)
+	{
 	uint32_t randomSodaColor;
 	int randomSoda;
 
@@ -145,9 +150,10 @@ void do_random_vend(void) {
 	delay(1000);
 	// Turn off the LED
 	turnOffLeds(-1);
-}
+	}
 
-void do_vend(void) {
+void do_vend(void)
+	{
 	Serial.println("Vending.");
 	digitalWrite(7, LOW);
 	digitalWrite(8, HIGH);
@@ -157,32 +163,37 @@ void do_vend(void) {
 	digitalWrite(9, HIGH);
 	delay(900);
 	digitalWrite(7, HIGH);
-}
+	}
 
-char start_read_temperature(void) {
-	if (!ds.search(addr)) {
+char start_read_temperature(void)
+	{
+	if (!ds.search(addr))
+		{
 		//no more sensors on chain, reset search
 		ds.reset_search();
 		return -1;
-	}
+		}
 	
-	if (OneWire::crc8(addr, 7) != addr[7]) {
+	if (OneWire::crc8(addr, 7) != addr[7])
+		{
 		Serial.println("CRC is not valid!");
 		return -1;
-	}
+		}
 	
-	if (addr[0] != 0x10 && addr[0] != 0x28) {
+	if (addr[0] != 0x10 && addr[0] != 0x28)
+		{
 		Serial.print("Device is not recognized");
 		return -1;
-	}
+		}
 	
 	ds.reset();
 	ds.select(addr);
 	ds.write(0x44);
 	return 0;
-}
+	}
 
-float get_temperature(void) {
+float get_temperature(void)
+	{
 	//returns the temperature from one DS18S20 in Fahrenheit
 	byte data[12], present;
 	float tempRead;
@@ -191,35 +202,37 @@ float get_temperature(void) {
 	ds.select(addr);  
 	ds.write(0xBE); // Read Scratchpad
 	
-	for (int i = 0; i < 9; i++) { // we need 9 bytes
+	for (int i = 0; i < 9; i++) // we need 9 bytes
 		data[i] = ds.read();
-	}
 	
 	ds.reset_search();
 	
 	tempRead = ((data[1] << 8) | data[0]); //using two's compliment
 	tempRead /= 16;
 	return (tempRead * 1.8 + 32); /* De-suckigrade the temp */
-}
+	}
 
-void handle_temperature() {
+void handle_temperature()
+	{
 	float temp = get_temperature();
 	static unsigned long start_at = 0, update_temperature_at = 0;
 	char webstr[255];
 	unsigned long m = millis();
 	
-	if (temp <= COMPRESSOR_OFF) {
+	if (temp <= COMPRESSOR_OFF)
+		{
 		digitalWrite(COMPRESSOR_RELAY, LOW);
 		start_at = m + COMPRESSOR_ON_DELAY_MILLIS;
-	} else if (temp >= COMPRESSOR_ON && start_at <= m) {
+		}
+	else if (temp >= COMPRESSOR_ON && start_at <= m)
 		digitalWrite(COMPRESSOR_RELAY, HIGH);
-	}
 
-	if (update_temperature_at <= m) {
+	if (update_temperature_at <= m)
+		{
 		update_temperature_at = m + TEMPERATURE_UPDATE_INTERVAL;
 		snprintf(webstr, sizeof(webstr), "/tempset/%.1f", temp);
+		}
 	}
-}
 
 void loop()
 	{
@@ -331,22 +344,25 @@ void loop()
 
 /* LED Helper functions */
 // Most of the LED helper functions taken from adafruit's example code.
-void rainbowCycle(uint8_t wait) {
+void rainbowCycle(uint8_t wait)
+	{
 	int i, j;
 	
-	for (j = 0; j < 256 * 5; j += 5) { // 5 cycles of all 25 colors in the wheel
-		for (i = 0; i < leds.numPixels(); i++) {
+	for (j = 0; j < 256 * 5; j += 5) // 5 cycles of all 25 colors in the wheel
+		{
+		for (i = 0; i < leds.numPixels(); i++)
+			{
 			// tricky math! we use each pixel as a fraction of the full 96-color wheel
 			// (thats the i / strip.numPixels() part)
 			// Then add in j which makes the colors go around per pixel
 			// the % 96 is to make the wheel cycle around
 			leds.setPixelColor(i, Wheel( ((i * 256 / leds.numPixels()) + j) % 256) );
-		}
+			}
 		leds.show(); // write all the pixels out
 		delay(wait);
 		Serial.println("Rainbow!");
+		}
 	}
-}
 
 void randomColors(uint8_t wait, uint8_t numberCycles)
 	{
@@ -375,7 +391,8 @@ void turnOffLeds(char except)
 	}
 
 // Create a 24 bit color value from R,G,B
-uint32_t Color(byte r, byte g, byte b) {
+uint32_t Color(byte r, byte g, byte b)
+	{
 	uint32_t c;
 	c = r;
 	c <<= 8;
@@ -383,20 +400,24 @@ uint32_t Color(byte r, byte g, byte b) {
 	c <<= 8;
 	c |= b;
 	return c;
-}
+	}
 
 //Input a value 0 to 255 to get a color value.
 //The colours are a transition r - g -b - back to r
-uint32_t Wheel(byte WheelPos) {
-	if (WheelPos < 85) {
+uint32_t Wheel(byte WheelPos)
+	{
+	if (WheelPos < 85)
 		return Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-	} else if (WheelPos < 170) {
+	else if (WheelPos < 170)
+		{
 		WheelPos -= 85;
 		return Color(255 - WheelPos * 3, 0, WheelPos * 3);
-	} else {
+		}
+	else
+		{
 		WheelPos -= 170;
 		return Color(0, WheelPos * 3, 255 - WheelPos * 3);
+		}
 	}
-}
 
 /* vim:set filetype=c: */
