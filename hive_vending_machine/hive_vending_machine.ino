@@ -16,7 +16,8 @@
 #define COMPRESSOR_OFF 34.0
 #define COMPRESSOR_ON_DELAY_MILLIS 30000
 
-#define TEMPERATURE_PIN (-1)
+#define TEMPERATURE_PIN 19
+#define TEMPERATURE_POWER_PIN 18
 #define TEMPERATURE_UPDATE_INTERVAL 10000
 #define TEMPERATURE_READ_TIME 1000
 
@@ -109,8 +110,10 @@ void setup()
 	pinMode(7, OUTPUT);
 	pinMode(8, OUTPUT);
 	pinMode(9, OUTPUT);
+	pinMode(TEMPERATURE_POWER_PIN, OUTPUT);
 	pinMode(COMPRESSOR_RELAY, OUTPUT);
 	digitalWrite(COMPRESSOR_RELAY, LOW);
+	digitalWrite(TEMPERATURE_POWER_PIN, HIGH);
 	
 	/*
 		Set soda button switch pins to input and pull them high
@@ -218,6 +221,9 @@ void handle_temperature()
 	static unsigned long start_at = 0, update_temperature_at = 0;
 	char webstr[255];
 	unsigned long m = millis();
+
+	Serial.print("T=");
+	Serial.println(temp);
 	
 	if (temp <= COMPRESSOR_OFF)
 		{
@@ -256,9 +262,14 @@ void loop()
 		ch = start_read_temperature();
 		if (!ch)
 			temp_ready_time = m + TEMPERATURE_READ_TIME;
+		else
+			temp_ready_time = 0;
 		}
 	else if (temp_ready_time <= m)
+		{
+		temp_ready_time = 0;
 		handle_temperature();
+		}
 	
 	if(wg.available())
 		{
