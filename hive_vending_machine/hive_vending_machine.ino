@@ -18,7 +18,6 @@
 WIEGAND wg;
 byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
 const char kHostname[] = "door.at.hive13.org";
-extern unsigned char soda_count;
 
 void setup()
 	{
@@ -30,8 +29,6 @@ void setup()
 	Serial.begin(57600);
 	// Let's set up the Ethernet Connections
 	Serial.println("Hive13 Vending Arduino Shield v.04");
-	Serial.print(soda_count);
-	Serial.println(" sodas configured.");
 	Serial.println("Initializing lights.");
 	leds_init();
 	Serial.println("Initializing Ethernet Controller.");
