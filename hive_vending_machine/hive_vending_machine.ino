@@ -18,7 +18,7 @@
 
 #define TEMPERATURE_PIN 19
 #define TEMPERATURE_POWER_PIN 18
-#define TEMPERATURE_UPDATE_INTERVAL 10000
+#define TEMPERATURE_UPDATE_INTERVAL 300000
 #define TEMPERATURE_READ_TIME 1000
 
 #define RANDOM_SODA_NUMBER 4
@@ -27,6 +27,7 @@
 WIEGAND wg;
 byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
 const char kHostname[] = "door.at.hive13.org";
+const char temp_host[] = "portal.hive13.org";
 
 uint8_t dataPin = 39;  // green wire
 uint8_t clockPin = 38; // blue wire
@@ -200,12 +201,13 @@ float get_temperature(void)
 	//returns the temperature from one DS18S20 in Fahrenheit
 	byte data[12], present;
 	float tempRead;
+	int i;
 	
 	present = ds.reset();
 	ds.select(addr);  
 	ds.write(0xBE); // Read Scratchpad
 	
-	for (int i = 0; i < 9; i++) // we need 9 bytes
+	for (i = 0; i < 9; i++) // we need 9 bytes
 		data[i] = ds.read();
 	
 	ds.reset_search();
@@ -219,11 +221,16 @@ void handle_temperature()
 	{
 	float temp = get_temperature();
 	static unsigned long start_at = 0, update_temperature_at = 0;
-	char webstr[255];
+	char webstr[255], float_str[16];
 	unsigned long m = millis();
+	int err;
+	EthernetClient c;
+	HttpClient http(c);
 
-	Serial.print("T=");
-	Serial.println(temp);
+	dtostrf(temp, 4, 2, float_str);
+
+	snprintf(webstr, sizeof(webstr), "T=%s\n", float_str);
+	Serial.print(webstr);
 	
 	if (temp <= COMPRESSOR_OFF)
 		{
@@ -235,17 +242,21 @@ void handle_temperature()
 
 	if (update_temperature_at <= m)
 		{
+		Ethernet.maintain();
+		Serial.print("Logging temperature: ");
 		update_temperature_at = m + TEMPERATURE_UPDATE_INTERVAL;
-		snprintf(webstr, sizeof(webstr), "/tempset/%.1f", temp);
+		snprintf(webstr, sizeof(webstr), "/isOpen/logger.php?sodatemp=%s", float_str);
+		err = http.get(temp_host, webstr);
+		Serial.println(err);
 		}
 	}
 
 void loop()
 	{
 	char host_path[255], ch;
-	unsigned int code, m = millis();
+	unsigned long code, m = millis();
 	int err, buttonValue;
-	static unsigned int temp_ready_time = 0;
+	static unsigned long temp_ready_time = 0;
 	EthernetClient c;
 	HttpClient http(c);
 	char i;
@@ -281,7 +292,7 @@ void loop()
 		Serial.print(", Type W");
 		Serial.println(wg.getWiegandType());
 		// This is what we do when we actually get the OK to vend...
-		snprintf(host_path, sizeof(host_path), "/vendcheck/%d/go", code);
+		snprintf(host_path, sizeof(host_path), "/vendcheck/%lu/go", code);
 		err = http.get(kHostname, host_path);
 		if (err == 0)
 			{
