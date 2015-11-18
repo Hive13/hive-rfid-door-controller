@@ -57,7 +57,7 @@ void do_random_vend(void)
 	// Let the chosen soda stay lit for one second
 	delay(1000);
 	// Turn off the LED
-	turnOffLeds(-1);
+	leds_off();
 	}
 
 void do_vend(void)

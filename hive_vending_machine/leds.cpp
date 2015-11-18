@@ -7,7 +7,8 @@
 #define LED_DATA_PIN 39 /* green wire */
 #define LED_CLOCK_PIN 38 /* blue wire */
 #define LED_COUNT 20
-Adafruit_WS2801 leds = Adafruit_WS2801(LED_COUNT, LED_DATA_PIN, LED_CLOCK_PIN);
+
+static Adafruit_WS2801 leds = Adafruit_WS2801(LED_COUNT, LED_DATA_PIN, LED_CLOCK_PIN);
 extern unsigned char soda_count;
 extern int sodaButtons[][4];
 
@@ -29,9 +30,9 @@ void leds_init(void)
 /* LED Helper functions */
 void randomColors(uint8_t wait, uint8_t numberCycles)
 	{
-	int i;
-	int randomLeds;
+	unsigned int i, randomLeds;
 	uint32_t randomLedsColor;
+
 	for(i = 0; i < numberCycles * leds.numPixels(); i++)
 		{
 		randomLeds = random(0, 8);
@@ -44,18 +45,19 @@ void randomColors(uint8_t wait, uint8_t numberCycles)
 		}
 	}
 
-void turnOffLeds(char except)
+void leds_off(void)
 	{
-	char i;
+	unsigned char i;
+
 	for(i = 0; i < leds.numPixels(); i++)
-		if (i != except)
-			leds.setPixelColor(i, 0, 0, 0);
+		leds.setPixelColor(i, 0, 0, 0);
 	leds.show();
 	}
 
 void leds_one(char which, uint32_t color)
 	{
-	char i;
+	unsigned char i;
+
 	for(i = 0; i < leds.numPixels(); i++)
 		{
 		if (which >= 0 && which < soda_count && (sodaButtons[which][2] == i || sodaButtons[which][3] == i))
@@ -95,5 +97,3 @@ uint32_t Wheel(byte WheelPos)
 		return Color(0, WheelPos * 3, 255 - WheelPos * 3);
 		}
 	}
-
-/* vim:set filetype=c: */
