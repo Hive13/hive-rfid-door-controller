@@ -20,8 +20,6 @@ int sodaButtons[][4] = {
 
 unsigned char soda_count = SODA_COUNT;
 
-extern Adafruit_WS2801 leds;
-
 void set_vend(char c)
 	{
 	static unsigned char color_at = 0;
