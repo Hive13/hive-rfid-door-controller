@@ -3,6 +3,7 @@
 
 #include "vend.h"
 #include "leds.h"
+#include "temp.h"
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and then the two led numbers
@@ -114,6 +115,12 @@ void vend_check(void)
 			{
 			pressed = 4;
 			break;
+			}
+		/* Display the current temperature */
+		if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[1][0]))
+			{
+			temperature_check();
+			return;
 			}
 
 		/* Is the current button pressed? */
