@@ -53,6 +53,19 @@ void turnOffLeds(char except)
 	leds.show();
 	}
 
+void leds_one(char which, uint32_t color)
+	{
+	char i;
+	for(i = 0; i < leds.numPixels(); i++)
+		{
+		if (sodaButtons[which][2] == i || sodaButtons[which][3] == i)
+			leds.setPixelColor(i, color);
+		else
+			leds.setPixelColor(i, 0, 0, 0);
+		}
+	leds.show();
+	}
+
 // Create a 24 bit color value from R,G,B
 uint32_t Color(byte r, byte g, byte b)
 	{

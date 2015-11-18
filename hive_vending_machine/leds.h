@@ -3,6 +3,7 @@
 
 void randomColors(uint8_t wait, uint8_t numberCycles);
 void turnOffLeds(char except);
+void leds_one(char which, uint32_t color);
 void leds_init(void);
 uint32_t Color(byte r, byte g, byte b);
 uint32_t Wheel(byte WheelPos);
