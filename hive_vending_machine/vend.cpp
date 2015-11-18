@@ -34,14 +34,8 @@ void set_vend(char c)
 
 	for (i = 0; i < SODA_COUNT; i++)
 		digitalWrite(sodaButtons[i][1], c != i);
-	turnOffLeds(-1);
-	if (c >= 0 && c < SODA_COUNT)
-		{
-		cur_color = Wheel(color_at++);
-		leds.setPixelColor(sodaButtons[c][2], cur_color);
-		leds.setPixelColor(sodaButtons[c][3], cur_color);
-		}
-	leds.show();
+	cur_color = Wheel(color_at++);
+	leds_one(c, cur_color);
 	}
 
 void do_random_vend(void)
@@ -54,14 +48,10 @@ void do_random_vend(void)
 	Serial.print("Wooo colors!");
 	// Display the light show
 	randomColors(20, 5);
-	Serial.print("Colors done, turning off!");
-	turnOffLeds(-1);
 	Serial.print("Vending random soda!");
 	// Choose the random soda to vend
 	randomSoda = random(0, SODA_COUNT);
-	leds.setPixelColor(sodaButtons[randomSoda][2], randomSodaColor);
-	leds.setPixelColor(sodaButtons[randomSoda][3], randomSodaColor);
-	leds.show();
+	leds_one(randomSoda, randomSodaColor);
 	digitalWrite(sodaButtons[randomSoda][1], 0);
 	Serial.print("Random soda is ");
 	Serial.print(randomSoda);

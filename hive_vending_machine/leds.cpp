@@ -58,7 +58,7 @@ void leds_one(char which, uint32_t color)
 	char i;
 	for(i = 0; i < leds.numPixels(); i++)
 		{
-		if (sodaButtons[which][2] == i || sodaButtons[which][3] == i)
+		if (which >= 0 && which < soda_count && (sodaButtons[which][2] == i || sodaButtons[which][3] == i))
 			leds.setPixelColor(i, color);
 		else
 			leds.setPixelColor(i, 0, 0, 0);
