@@ -14,17 +14,15 @@
 #include "leds.h"
 #include "temp.h"
 #include "vend.h"
+#include "http.h"
 
-WIEGAND wg;
-byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
-const char kHostname[] = "door.at.hive13.org";
+static WIEGAND wg;
+static byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
+static char kHostname[] = "door.at.hive13.org";
 
 void setup()
 	{
-	EthernetClient c;
-	HttpClient http(c);
-	int err;
-	const char kPath[] = "/vendtest";
+	char kPath[] = "/vendtest";
 
 	Serial.begin(57600);
 	// Let's set up the Ethernet Connections
@@ -38,25 +36,7 @@ void setup()
 		delay(1000);
 		}
 	
-	Serial.println("Attempting to make static connection to Door to ensure connectivity.");
-	
-	err = http.get(kHostname, kPath);
-	if (err == 0)
-		{
-		Serial.println("Vending Machine Test Connection OK");
-		err = http.responseStatusCode();
-		if (err >= 0)
-			{
-			Serial.print("Got Status Code: ");
-			Serial.println(err);
-			// This should be 200 OK.
-			}
-		else
-			Serial.println("Vending Machine Test FAILED to get response headers.");
-		}
-	else
-		Serial.println("Vending Machine Test Connection FAILED.");
-	
+	http_get("door test", kHostname, kPath);
 	wg.begin();
 	// wiegand/rfid reader pins
 	pinMode(7, OUTPUT);
@@ -75,8 +55,6 @@ void loop()
 	unsigned long code, m = millis();
 	int err;
 	static unsigned long temp_ready_time = 0;
-	EthernetClient c;
-	HttpClient http(c);
 	
 	digitalWrite(7, HIGH);
 	digitalWrite(8, LOW);
@@ -103,25 +81,11 @@ void loop()
 		Serial.print(host_path);
 		// This is what we do when we actually get the OK to vend...
 		snprintf(host_path, sizeof(host_path), "/vendcheck/%lu/go", code);
-		err = http.get(kHostname, host_path);
-		if (err == 0)
-			{
-			Serial.println("RFID Badge Connection OK");
-			err = http.responseStatusCode();
-			if (err >= 0)
-				{
-				Serial.print("Badge receievd status code: ");
-				Serial.println(err);
-				if (err == 200)
-					do_vend();
-				else
-					Serial.println("Didn't receive the OK to vend...");
-				}
-			else
-				Serial.println("Err connecting to door controller.");
-			}
+		err = http_get("vend", kHostname, host_path);
+		if (err == 200)
+			do_vend();
 		else
-			Serial.println("Badge Connection FAILED.");
+			Serial.println("Didn't receive the OK to vend...");
 		}
 	
 	vend_check();

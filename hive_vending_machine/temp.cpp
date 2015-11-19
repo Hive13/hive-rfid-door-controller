@@ -5,6 +5,7 @@
 
 #include "temp.h"
 #include "leds.h"
+#include "http.h"
 
 #define COMPRESSOR_RELAY (-1)
 #define COMPRESSOR_ON 38.0
@@ -18,8 +19,8 @@
 
 static OneWire ds(TEMPERATURE_PIN);
 static byte addr[8];
-static const char temp_host[] = "portal.hive13.org";
-float temp = NAN;
+static char temp_host[] = "portal.hive13.org";
+static float temp = NAN;
 
 char start_read_temperature(void)
 	{
@@ -105,9 +106,6 @@ void handle_temperature()
 	static unsigned long start_at = 0, update_temperature_at = 0;
 	char webstr[255], float_str[16];
 	unsigned long m = millis();
-	int err;
-	EthernetClient c;
-	HttpClient http(c);
 
 	temp = get_temperature();
 	dtostrf(temp, 4, 2, float_str);
@@ -129,8 +127,7 @@ void handle_temperature()
 		Serial.print("Logging temperature: ");
 		update_temperature_at = m + TEMPERATURE_UPDATE_INTERVAL;
 		snprintf(webstr, sizeof(webstr), "/isOpen/logger.php?sodatemp=%s", float_str);
-		err = http.get(temp_host, webstr);
-		Serial.println(err);
+		http_get("temp", temp_host, webstr);
 		}
 	}
 
