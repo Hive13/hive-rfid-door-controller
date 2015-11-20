@@ -39,9 +39,6 @@ void setup()
 	http_get("door test", kHostname, kPath);
 	wg.begin();
 	// wiegand/rfid reader pins
-	pinMode(7, OUTPUT);
-	pinMode(8, OUTPUT);
-	pinMode(9, OUTPUT);
 	pinMode(TEMPERATURE_POWER_PIN, OUTPUT);
 	pinMode(COMPRESSOR_RELAY, OUTPUT);
 	digitalWrite(COMPRESSOR_RELAY, LOW);
@@ -56,9 +53,6 @@ void loop()
 	int err;
 	static unsigned long temp_ready_time = 0;
 	
-	digitalWrite(7, HIGH);
-	digitalWrite(8, LOW);
-	digitalWrite(9, HIGH);
 	
 	if (!temp_ready_time)
 		{

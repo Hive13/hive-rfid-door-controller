@@ -77,6 +77,12 @@ void vend_init(void)
 	{
 	unsigned char i;
 
+	pinMode(7, OUTPUT);
+	pinMode(8, OUTPUT);
+	pinMode(9, OUTPUT);
+	digitalWrite(7, HIGH);
+	digitalWrite(8, LOW);
+	digitalWrite(9, HIGH);
 	/*
 		Set soda button switch pins to input and pull them high
 		Set soda relay pins to output
