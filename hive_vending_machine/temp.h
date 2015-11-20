@@ -15,5 +15,6 @@ char start_read_temperature(void);
 float get_temperature(void);
 void handle_temperature();
 void temperature_check(void);
+void temperature_init(void);
 
 #endif /* __TEMP_H */

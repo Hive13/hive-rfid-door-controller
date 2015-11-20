@@ -43,10 +43,9 @@ void do_random_vend(void)
 
 	// Pick the color that the chosen soda will be
 	randomSodaColor = Wheel(random(0, 255));
-	Serial.print("Wooo colors!");
 	// Display the light show
 	randomColors(20, 5);
-	Serial.print("Vending random soda!");
+	Serial.print("Vending random soda!\n");
 	// Choose the random soda to vend
 	randomSoda = random(0, SODA_COUNT);
 	leds_one(randomSoda, randomSodaColor);
@@ -62,7 +61,7 @@ void do_random_vend(void)
 
 void do_vend(void)
 	{
-	Serial.println("Vending.");
+	Serial.print("Vending.\n");
 	digitalWrite(7, LOW);
 	digitalWrite(8, HIGH);
 	digitalWrite(9, LOW);

@@ -7,20 +7,18 @@
 #include "leds.h"
 #include "http.h"
 
-#define COMPRESSOR_RELAY (-1)
-#define COMPRESSOR_ON 38.0
-#define COMPRESSOR_OFF 34.0
-#define COMPRESSOR_ON_DELAY_MILLIS 30000
-
-#define TEMPERATURE_PIN 19
-#define TEMPERATURE_POWER_PIN 18
-#define TEMPERATURE_UPDATE_INTERVAL 300000
-#define TEMPERATURE_READ_TIME 1000
-
 static OneWire ds(TEMPERATURE_PIN);
 static byte addr[8];
 static char temp_host[] = "portal.hive13.org";
 static float temp = NAN;
+
+void temperature_init(void)
+	{
+	pinMode(TEMPERATURE_POWER_PIN, OUTPUT);
+	pinMode(COMPRESSOR_RELAY, OUTPUT);
+	digitalWrite(COMPRESSOR_RELAY, LOW);
+	digitalWrite(TEMPERATURE_POWER_PIN, HIGH);
+	}
 
 char start_read_temperature(void)
 	{
@@ -33,13 +31,13 @@ char start_read_temperature(void)
 	
 	if (OneWire::crc8(addr, 7) != addr[7])
 		{
-		Serial.println("CRC is not valid!");
+		Serial.print("CRC is not valid!\n");
 		return -1;
 		}
 	
 	if (addr[0] != 0x10 && addr[0] != 0x28)
 		{
-		Serial.print("Device is not recognized");
+		Serial.print("Device is not recognized\n");
 		return -1;
 		}
 	

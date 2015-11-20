@@ -25,39 +25,32 @@ void setup()
 	char kPath[] = "/vendtest";
 
 	Serial.begin(57600);
-	// Let's set up the Ethernet Connections
-	Serial.println("Hive13 Vending Arduino Shield v.04");
-	Serial.println("Initializing lights.");
+	
+	Serial.print("Hive13 Vending Arduino Shield v.04\nInitializing lights.\n");
 	leds_init();
-	Serial.println("Initializing Ethernet Controller.");
+	Serial.print("Initializing Ethernet Controller.\n");
 	while (Ethernet.begin(mac) != 1)
 		{
-		Serial.println("Error obtaining DHCP address.  Let's wait a second and try again");
+		Serial.print("Error obtaining DHCP address.  Let's wait a second and try again\n");
 		delay(1000);
 		}
 	
 	http_get("door test", kHostname, kPath);
 	wg.begin();
-	// wiegand/rfid reader pins
-	pinMode(TEMPERATURE_POWER_PIN, OUTPUT);
-	pinMode(COMPRESSOR_RELAY, OUTPUT);
-	digitalWrite(COMPRESSOR_RELAY, LOW);
-	digitalWrite(TEMPERATURE_POWER_PIN, HIGH);
+	temperature_init();
 	vend_init();
 	}
 
 void loop()
 	{
-	char host_path[255], i;
+	char host_path[255];
 	unsigned long code, m = millis();
 	int err;
 	static unsigned long temp_ready_time = 0;
 	
-	
 	if (!temp_ready_time)
 		{
-		i = start_read_temperature();
-		if (!i)
+		if (!start_read_temperature())
 			temp_ready_time = m + TEMPERATURE_READ_TIME;
 		else
 			temp_ready_time = 0;
@@ -73,13 +66,13 @@ void loop()
 		code = wg.getCode();
 		snprintf(host_path, sizeof(host_path), "Scanned badge %lu/0x%lX, type W%d\n", code, code, wg.getWiegandType());
 		Serial.print(host_path);
-		// This is what we do when we actually get the OK to vend...
+
 		snprintf(host_path, sizeof(host_path), "/vendcheck/%lu/go", code);
 		err = http_get("vend", kHostname, host_path);
 		if (err == 200)
 			do_vend();
 		else
-			Serial.println("Didn't receive the OK to vend...");
+			Serial.print("Didn't receive the OK to vend...\n");
 		}
 	
 	vend_check();
