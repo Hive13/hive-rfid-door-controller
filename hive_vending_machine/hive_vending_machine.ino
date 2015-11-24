@@ -46,22 +46,10 @@ void setup()
 void loop()
 	{
 	char host_path[255];
-	unsigned long code, m = millis();
+	unsigned long code;
 	int err;
-	static unsigned long temp_ready_time = 0;
-	
-	if (!temp_ready_time)
-		{
-		if (!start_read_temperature())
-			temp_ready_time = m + TEMPERATURE_READ_TIME;
-		else
-			temp_ready_time = 0;
-		}
-	else if (temp_ready_time <= m)
-		{
-		temp_ready_time = 0;
-		handle_temperature();
-		}
+
+	handle_temperature();
 	
 	if(wg.available())
 		{

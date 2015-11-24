@@ -109,10 +109,23 @@ uint32_t get_temperature(void)
 
 void handle_temperature()
 	{
-	static unsigned long start_at = 0, update_temperature_at = 0;
+	static unsigned long start_at = 0, update_temperature_at = 0, temp_ready_time = 0;
 	char webstr[255];
 	unsigned long m = millis();
 
+	if (!temp_ready_time)
+		{
+		if (!start_read_temperature())
+			temp_ready_time = m + TEMPERATURE_READ_TIME;
+		else
+			temp_ready_time = 0;
+		return;
+		}
+	else if (temp_ready_time <= m)
+		temp_ready_time = 0;
+	else
+		return;
+	
 	temp = get_temperature();
 
 	log_msg("T=%lu.%01lu", temp / 10, temp % 10);
