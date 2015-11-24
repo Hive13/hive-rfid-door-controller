@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_WS2801.h>
 
+#include "log.h"
 #include "leds.h"
 #include "vend.h"
 
@@ -17,6 +18,7 @@ void leds_init(void)
 	unsigned char i;
 	uint32_t color;
 
+	log_msg("Initializing lights.");
 	leds.begin();
 	for (i = 0; i < soda_count; i++)
 		{
@@ -37,9 +39,8 @@ void randomColors(uint8_t wait, uint8_t numberCycles)
 		{
 		randomLeds = random(0, 8);
 		randomLedsColor = Wheel(random(0, 255));
-		// Set groups of two to the same color. The +4 is to make the 16 out of 20 that turn on the end ones.
-		leds.setPixelColor(randomLeds * 2 + 4, randomLedsColor);
-		leds.setPixelColor(randomLeds * 2 + 1 + 4, randomLedsColor);
+		leds.setPixelColor(sodaButtons[randomLeds][2], randomLedsColor);
+		leds.setPixelColor(sodaButtons[randomLeds][3], randomLedsColor);
 		leds.show();
 		delay(wait);
 		}

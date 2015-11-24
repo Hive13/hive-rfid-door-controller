@@ -28,7 +28,6 @@ void setup()
 	log_begin();
 	
 	log_msg("Hive13 Vending Arduino Shield v.04");
-	log_msg("Initializing lights.");
 	leds_init();
 	log_msg("Initializing Ethernet Controller.");
 	while (Ethernet.begin(mac) != 1)
