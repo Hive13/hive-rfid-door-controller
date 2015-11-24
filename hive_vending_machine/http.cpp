@@ -3,8 +3,9 @@
 #include <HttpClient.h>
 
 #include "log.h"
+#include "http.h"
 
-extern "C" signed int http_get(char *req, char *host, char *path)
+signed int http_get(char *req, char *host, char *path)
 	{
 	EthernetClient c;
 	HttpClient http(c);
