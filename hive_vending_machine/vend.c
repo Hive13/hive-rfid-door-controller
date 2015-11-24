@@ -43,12 +43,12 @@ void do_random_vend(void)
 	int randomSoda;
 
 	// Pick the color that the chosen soda will be
-	randomSodaColor = Wheel(random(0, 255));
+	randomSodaColor = Wheel(random() & 0xFF);
 	// Display the light show
 	randomColors(20, 5);
 	log_msg("Vending random soda!");
 	// Choose the random soda to vend
-	randomSoda = random(0, SODA_COUNT);
+	randomSoda = random() % SODA_COUNT;
 	leds_one(randomSoda, randomSodaColor);
 	digitalWrite(sodaButtons[randomSoda][1], 0);
 	log_msg("Random soda is %d!\n", randomSoda);
