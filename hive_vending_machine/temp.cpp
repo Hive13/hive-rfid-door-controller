@@ -3,6 +3,7 @@
 #include <HttpClient.h>
 #include <OneWire.h>
 
+#include "log.h"
 #include "temp.h"
 #include "leds.h"
 #include "http.h"
@@ -31,13 +32,13 @@ char start_read_temperature(void)
 	
 	if (OneWire::crc8(addr, 7) != addr[7])
 		{
-		Serial.print("CRC is not valid!\n");
+		log_msg("CRC is not valid!");
 		return -1;
 		}
 	
 	if (addr[0] != 0x10 && addr[0] != 0x28)
 		{
-		Serial.print("Device is not recognized\n");
+		log_msg("Device is not recognized");
 		return -1;
 		}
 	
@@ -108,8 +109,7 @@ void handle_temperature()
 	temp = get_temperature();
 	dtostrf(temp, 4, 2, float_str);
 
-	snprintf(webstr, sizeof(webstr), "T=%s\n", float_str);
-	Serial.print(webstr);
+	log_msg("T=%s\n", float_str);
 	
 	if (temp <= COMPRESSOR_OFF)
 		{
@@ -122,7 +122,7 @@ void handle_temperature()
 	if (update_temperature_at <= m)
 		{
 		Ethernet.maintain();
-		Serial.print("Logging temperature: ");
+		log_msg("Logging temperature.");
 		update_temperature_at = m + TEMPERATURE_UPDATE_INTERVAL;
 		snprintf(webstr, sizeof(webstr), "/isOpen/logger.php?sodatemp=%s", float_str);
 		http_get("temp", temp_host, webstr);

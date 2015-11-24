@@ -15,6 +15,7 @@
 #include "temp.h"
 #include "vend.h"
 #include "http.h"
+#include "log.h"
 
 static WIEGAND wg;
 static byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
@@ -24,14 +25,15 @@ void setup()
 	{
 	char kPath[] = "/vendtest";
 
-	Serial.begin(57600);
+	log_begin();
 	
-	Serial.print("Hive13 Vending Arduino Shield v.04\nInitializing lights.\n");
+	log_msg("Hive13 Vending Arduino Shield v.04");
+	log_msg("Initializing lights.");
 	leds_init();
-	Serial.print("Initializing Ethernet Controller.\n");
+	log_msg("Initializing Ethernet Controller.");
 	while (Ethernet.begin(mac) != 1)
 		{
-		Serial.print("Error obtaining DHCP address.  Let's wait a second and try again\n");
+		log_msg("Error obtaining DHCP address.  Let's wait a second and try again.");
 		delay(1000);
 		}
 	
@@ -64,15 +66,14 @@ void loop()
 	if(wg.available())
 		{
 		code = wg.getCode();
-		snprintf(host_path, sizeof(host_path), "Scanned badge %lu/0x%lX, type W%d\n", code, code, wg.getWiegandType());
-		Serial.print(host_path);
+		log_msg("Scanned badge %lu/0x%lX, type W%d\n", code, code, wg.getWiegandType());
 
 		snprintf(host_path, sizeof(host_path), "/vendcheck/%lu/go", code);
 		err = http_get("vend", kHostname, host_path);
 		if (err == 200)
 			do_vend();
 		else
-			Serial.print("Didn't receive the OK to vend...\n");
+			log_msg("Didn't receive the OK to vend...\n");
 		}
 	
 	vend_check();

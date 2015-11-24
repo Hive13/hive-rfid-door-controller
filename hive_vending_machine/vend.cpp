@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Adafruit_WS2801.h>
 
+#include "log.h"
 #include "vend.h"
 #include "leds.h"
 #include "temp.h"
@@ -45,14 +46,12 @@ void do_random_vend(void)
 	randomSodaColor = Wheel(random(0, 255));
 	// Display the light show
 	randomColors(20, 5);
-	Serial.print("Vending random soda!\n");
+	log_msg("Vending random soda!");
 	// Choose the random soda to vend
 	randomSoda = random(0, SODA_COUNT);
 	leds_one(randomSoda, randomSodaColor);
 	digitalWrite(sodaButtons[randomSoda][1], 0);
-	Serial.print("Random soda is ");
-	Serial.print(randomSoda);
-	Serial.print("!\n");
+	log_msg("Random soda is %d!\n", randomSoda);
 	// Let the chosen soda stay lit for one second
 	delay(1000);
 	// Turn off the LED
@@ -61,7 +60,7 @@ void do_random_vend(void)
 
 void do_vend(void)
 	{
-	Serial.print("Vending.\n");
+	log_msg("Vending.");
 	digitalWrite(7, LOW);
 	digitalWrite(8, HIGH);
 	digitalWrite(9, LOW);
