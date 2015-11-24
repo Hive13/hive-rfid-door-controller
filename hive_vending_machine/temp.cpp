@@ -11,7 +11,7 @@
 static OneWire ds(TEMPERATURE_PIN);
 static byte addr[8];
 static char temp_host[] = "portal.hive13.org";
-static float temp = NAN;
+static uint32_t temp = NAN;
 
 void temperature_init(void)
 	{
@@ -52,38 +52,36 @@ void temperature_check(void)
 	{
 	unsigned char light, p;
 	uint32_t color;
-	float f;
 
 	if (isnan(temp))
 		{
 		light = 7;
 		color = Color(255, 255, 255);
 		}
-	else if (temp < 32.0)
+	else if (temp < 320)
 		{
 		light = 0;
 		color = Color(0, 255, 0);
 		}
-	else if (temp >= 48.0)
+	else if (temp >= 480)
 		{
 		light = 7;
 		color = Color(0, 255, 0);
 		}
 	else
 		{
-		light = (unsigned char)(temp - 32.0 / 2.0);
-		f = fmod(temp, 2.0);
-		p = f * 128.0;
+		light = (unsigned char)(temp - 320 / 20);
+		p = (temp % 20) * 12;
 		color = Color(0 + p, 0, 255 - p);
 		}
 	leds_one(light, color);
 	}
 
-float get_temperature(void)
+uint32_t get_temperature(void)
 	{
 	//returns the temperature from one DS18S20 in Fahrenheit
 	byte data[12], present;
-	float tempRead;
+	uint32_t tempRead;
 	int i;
 	
 	present = ds.reset();
@@ -96,20 +94,28 @@ float get_temperature(void)
 	ds.reset_search();
 	
 	tempRead = ((data[1] << 8) | data[0]); //using two's compliment
-	tempRead /= 16;
-	return (tempRead * 1.8 + 32); /* De-suckigrade the temp */
+	/*
+		Optimized math for fixed point.
+		1. Multiply by 10 for fixed point.
+		2. Divide by 16 because the result is 16 times the actual temperature.
+		3. Multiply by 1.8 (9 / 5) to convert from suckigrade.
+		4. Add 320 to finish de-suckigrading the temperature.
+		(10 * 9) / (16 * 5) = (9 / 8)
+	*/
+	tempRead *= 9; /* Convert to fixed point */
+	tempRead /= 8;
+	return tempRead + 320;
 	}
 
 void handle_temperature()
 	{
 	static unsigned long start_at = 0, update_temperature_at = 0;
-	char webstr[255], float_str[16];
+	char webstr[255];
 	unsigned long m = millis();
 
 	temp = get_temperature();
-	dtostrf(temp, 4, 2, float_str);
 
-	log_msg("T=%s\n", float_str);
+	log_msg("T=%lu.%01lu", temp / 10, temp % 10);
 	
 	if (temp <= COMPRESSOR_OFF)
 		{
@@ -124,7 +130,7 @@ void handle_temperature()
 		Ethernet.maintain();
 		log_msg("Logging temperature.");
 		update_temperature_at = m + TEMPERATURE_UPDATE_INTERVAL;
-		snprintf(webstr, sizeof(webstr), "/isOpen/logger.php?sodatemp=%s", float_str);
+		snprintf(webstr, sizeof(webstr), "/isOpen/logger.php?sodatemp=%lu.%01lu", temp / 10, temp % 10);
 		http_get("temp", temp_host, webstr);
 		}
 	}

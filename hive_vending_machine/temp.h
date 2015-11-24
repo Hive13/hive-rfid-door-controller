@@ -12,7 +12,7 @@
 #define TEMPERATURE_READ_TIME 1000
 
 char start_read_temperature(void);
-float get_temperature(void);
+uint32_t get_temperature(void);
 void handle_temperature();
 void temperature_check(void);
 void temperature_init(void);
