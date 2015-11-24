@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <Adafruit_WS2801.h>
 
 #include "log.h"
 #include "vend.h"
