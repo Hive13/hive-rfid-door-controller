@@ -18,5 +18,5 @@ void _log_msg(char *format, ...)
 	vsnprintf(message, sizeof(message), format, vargs);
 	va_end(vargs);
 
-	Serial.print(message);
+	Serial.println(message);
 	}
