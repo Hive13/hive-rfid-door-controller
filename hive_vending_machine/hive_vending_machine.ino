@@ -53,14 +53,14 @@ void loop()
 	if(wg.available())
 		{
 		code = wg.getCode();
-		log_msg("Scanned badge %lu/0x%lX, type W%d\n", code, code, wg.getWiegandType());
+		log_msg("Scanned badge %lu/0x%lX, type W%d", code, code, wg.getWiegandType());
 
 		snprintf(host_path, sizeof(host_path), "/vendcheck/%lu/go", code);
 		err = http_get("vend", kHostname, host_path);
 		if (err == 200)
 			do_vend();
 		else
-			log_msg("Didn't receive the OK to vend...\n");
+			log_msg("Didn't receive the OK to vend...");
 		}
 	
 	vend_check();
