@@ -20,6 +20,14 @@ void leds_init(void)
 
 	log_msg("Initializing lights.");
 	leds.begin();
+	leds_busy();
+	}
+
+void leds_busy(void)
+	{
+	unsigned char i;
+	uint32_t color;
+
 	for (i = 0; i < soda_count; i++)
 		{
 		color = Wheel(random(0, 255));

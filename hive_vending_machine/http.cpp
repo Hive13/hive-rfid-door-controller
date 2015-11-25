@@ -4,6 +4,7 @@
 
 #include "log.h"
 #include "http.h"
+#include "leds.h"
 
 signed int http_get(char *req, char *host, char *path)
 	{
@@ -11,6 +12,7 @@ signed int http_get(char *req, char *host, char *path)
 	HttpClient http(c);
 	signed int err;
 
+	leds_busy();
 	log_msg("%s: Connecting to %s/%s", req, host, path);
 	err = http.get(host, path);
 	if (err == 0)
@@ -20,6 +22,7 @@ signed int http_get(char *req, char *host, char *path)
 		}
 	else
 		log_msg("%s: connection failed (%i)", req, err);
+	leds_off();
 	return err;	
 	}
 
