@@ -7,7 +7,7 @@ extern "C" {
 
 #if 1
 #define log_begin() _log_begin()
-#define log_msg(x, ...) _log_msg(x, #__VA_ARGS__)
+#define log_msg(x, ...) _log_msg(x, ##__VA_ARGS__)
 #else
 #define log_begin()
 #define log_msg(x, ...)
