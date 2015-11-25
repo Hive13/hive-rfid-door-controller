@@ -123,7 +123,6 @@ void handle_temperature()
 	
 	temp = get_temperature();
 
-	log_msg("T=%lu.%01lu", temp / 10, temp % 10);
 	
 	if (temp <= COMPRESSOR_OFF)
 		{
@@ -136,7 +135,7 @@ void handle_temperature()
 	if (update_temperature_at <= m)
 		{
 		Ethernet.maintain();
-		log_msg("Logging temperature.");
+		log_msg("Logging temperature %lu.%lu.", temp / 10, temp % 10);
 		update_temperature_at = m + TEMPERATURE_UPDATE_INTERVAL;
 		snprintf(webstr, sizeof(webstr), "/isOpen/logger.php?sodatemp=%lu.%01lu", temp / 10, temp % 10);
 		http_get("temp", temp_host, webstr);
