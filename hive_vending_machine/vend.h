@@ -17,5 +17,8 @@ void vend_init(void);
 
 #define RANDOM_SODA_NUMBER 4
 #define SODA_COUNT (sizeof(sodaButtons) / sizeof(sodaButtons[0]))
+#define VEND_PIN 7
+#define BEEP_PIN 9
+#define WIEGAND_LIGHT_PIN 8
 
 #endif /* __VEND_H */

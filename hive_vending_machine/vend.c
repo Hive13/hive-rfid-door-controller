@@ -29,6 +29,7 @@ void set_vend(char c)
 
 	if (lp != c)
 		color_at = 0;
+	lp = c;
 
 	for (i = 0; i < SODA_COUNT; i++)
 		digitalWrite(sodaButtons[i][1], c != i);
@@ -60,14 +61,14 @@ void do_random_vend(void)
 void do_vend(void)
 	{
 	log_msg("Vending.");
-	digitalWrite(7, LOW);
-	digitalWrite(8, HIGH);
-	digitalWrite(9, LOW);
+	digitalWrite(VEND_PIN, LOW);
+	digitalWrite(WIEGAND_LIGHT_PIN, HIGH);
+	digitalWrite(BEEP_PIN, LOW);
 	delay(100);
-	digitalWrite(8, LOW);
-	digitalWrite(9, HIGH);
+	digitalWrite(WIEGAND_LIGHT_PIN, LOW);
+	digitalWrite(BEEP_PIN, HIGH);
 	delay(900);
-	digitalWrite(7, HIGH);
+	digitalWrite(VEND_PIN, HIGH);
 	}
 
 void vend_init(void)
