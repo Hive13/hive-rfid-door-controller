@@ -11,7 +11,7 @@
 static OneWire ds(TEMPERATURE_PIN);
 static byte addr[8];
 static char temp_host[] = "portal.hive13.org";
-static uint32_t temp = NAN;
+static uint32_t temp = 0;
 
 void temperature_init(void)
 	{
@@ -53,12 +53,7 @@ void temperature_check(void)
 	unsigned char light, p;
 	uint32_t color;
 
-	if (isnan(temp))
-		{
-		light = 7;
-		color = Color(255, 255, 255);
-		}
-	else if (temp < 320)
+	if (temp < 320)
 		{
 		light = 0;
 		color = Color(0, 255, 0);
@@ -70,7 +65,7 @@ void temperature_check(void)
 		}
 	else
 		{
-		light = (unsigned char)(temp - 320 / 20);
+		light = (unsigned char)((temp - 320) / 20);
 		p = (temp % 20) * 12;
 		color = Color(0 + p, 0, 255 - p);
 		}
