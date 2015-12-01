@@ -28,8 +28,10 @@ void set_vend(char c)
 	uint32_t cur_color;
 
 	if (lp != c)
+		{
 		color_at = 0;
-	lp = c;
+		lp = c;
+		}
 
 	for (i = 0; i < SODA_COUNT; i++)
 		digitalWrite(sodaButtons[i][1], c != i);
@@ -118,7 +120,7 @@ void vend_check(void)
 		/* Is the current button pressed? */
 		if (!digitalRead(sodaButtons[i][0]))
 			{
-			if(i == RANDOM_SODA_NUMBER)
+			if (i == RANDOM_SODA_NUMBER)
 				{
 				pressed = -1;
 				do_random_vend();
