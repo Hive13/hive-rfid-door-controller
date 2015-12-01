@@ -77,12 +77,12 @@ void vend_init(void)
 	{
 	unsigned char i;
 
-	pinMode(7, OUTPUT);
-	pinMode(8, OUTPUT);
-	pinMode(9, OUTPUT);
-	digitalWrite(7, HIGH);
-	digitalWrite(8, LOW);
-	digitalWrite(9, HIGH);
+	pinMode(VEND_PIN, OUTPUT);
+	pinMode(WIEGAND_LIGHT_PIN, OUTPUT);
+	pinMode(BEEP_PIN, OUTPUT);
+	digitalWrite(VEND_PIN, HIGH);
+	digitalWrite(WIEGAND_LIGHT_PIN, LOW);
+	digitalWrite(BEEP_PIN, HIGH);
 	/*
 		Set soda button switch pins to input and pull them high
 		Set soda relay pins to output
@@ -98,37 +98,45 @@ void vend_init(void)
 void vend_check(void)
 	{
 	char pressed = -1;
-	unsigned char i;
+	unsigned char i, mask = 0;
+	static unsigned char prev_mask = 0, debounce_count;
 
 	// Cycle through all eight buttons, check their values, and do the appropriate event
-	for(i = 0; i < soda_count; i++)
+	for (i = soda_count - 1; i < soda_count; i--)
 		{
-		// For Ryan: If buttons 1 and 3 are pressed at the same time then vend the fifth soda.
-		// This is the soda that normally would have vended with the button that random currently takes.
-		if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[2][0]))
-			{
-			pressed = 4;
-			break;
-			}
-		/* Display the current temperature */
-		if(!digitalRead(sodaButtons[0][0]) && !digitalRead(sodaButtons[1][0]))
-			{
-			temperature_check();
-			return;
-			}
-
-		/* Is the current button pressed? */
-		if (!digitalRead(sodaButtons[i][0]))
-			{
-			if (i == RANDOM_SODA_NUMBER)
-				{
-				pressed = -1;
-				do_random_vend();
-				}
-			else
-				pressed = i;
-			break;
-			}
+		mask <<= 1;
+		if (digitalRead(sodaButtons[i][0]))
+			mask |= 1;
+		}
+	
+	if (prev_mask != mask)
+		{
+		prev_mask = mask;
+		debounce_count = 0;
+		mask = 0;
+		}
+	else if (debounce_count <= MIN_DEBOUNCE_COUNT)
+		{
+		debounce_count++;
+		mask = 0;
+		}
+	
+	if (!mask)
+		;
+	else if (mask == 0x05)
+		pressed = 4;
+	else if (mask == 0x03)
+		{
+		temperature_check();
+		return;
+		}
+	else if (mask == (1 << RANDOM_SODA_NUMBER))
+		do_random_vend();
+	else if (!(mask & (mask - 1))) /* If only one bit is set in the mask */
+		{
+		pressed = 0;
+		while (mask >>= 1)
+			pressed++;
 		}
 	set_vend(pressed);
 	}
