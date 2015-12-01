@@ -20,6 +20,6 @@ void vend_init(void);
 #define VEND_PIN 7
 #define BEEP_PIN 9
 #define WIEGAND_LIGHT_PIN 8
-#define MIN_DEBOUNCE_COUNT 100
+#define MIN_DEBOUNCE_COUNT 20
 
 #endif /* __VEND_H */
