@@ -11,7 +11,7 @@
 
 static Adafruit_WS2801 leds = Adafruit_WS2801(LED_COUNT, LED_DATA_PIN, LED_CLOCK_PIN);
 extern unsigned char soda_count;
-extern int sodaButtons[][4];
+extern unsigned char sodaButtons[][4];
 
 void leds_init(void)
 	{

@@ -7,7 +7,7 @@
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and then the two led numbers
-int sodaButtons[][4] = {
+unsigned char sodaButtons[][4] = {
 	{22, 37, 18, 19},
 	{24, 35, 16, 17},
 	{26, 33, 14, 15},
@@ -27,7 +27,7 @@ void set_vend(char c)
 	static char lp = -1;
 	static unsigned short larsen_at = 0;
 	char i;
-	uint32_t cur_color, cur_color2;
+	uint32_t cur_color;
 
 	if (lp != c)
 		{
@@ -41,12 +41,11 @@ void set_vend(char c)
 	if (c == -1 && larsen_on)
 		{
 		c = larsen_at / 256;
-		cur_color2 = Color((larsen_at % 256), (larsen_at % 256), (larsen_at % 256));
-		cur_color = Color(255 - (larsen_at % 256), 255 - (larsen_at % 256), 255 - (larsen_at % 256));
+		cur_color = Color((larsen_at % 256), (larsen_at % 256), (larsen_at % 256));
 		larsen_at++;
 		if (larsen_at >= (256 * 8))
 			larsen_at = 0;
-		leds_two(c, cur_color, cur_color2);
+		leds_two(c, ~cur_color, cur_color);
 		}
 	else
 		{
@@ -58,7 +57,7 @@ void set_vend(char c)
 void do_random_vend(void)
 	{
 	uint32_t randomSodaColor;
-	int randomSoda;
+	unsigned char randomSoda;
 
 	// Pick the color that the chosen soda will be
 	randomSodaColor = Wheel(random() & 0xFF);

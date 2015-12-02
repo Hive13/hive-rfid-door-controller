@@ -77,7 +77,7 @@ uint32_t get_temperature(void)
 	//returns the temperature from one DS18S20 in Fahrenheit
 	byte data[12], present;
 	uint32_t tempRead;
-	int i;
+	unsigned char i;
 	
 	present = ds.reset();
 	ds.select(addr);  
@@ -137,7 +137,7 @@ void handle_temperature()
 		Ethernet.maintain();
 		log_msg("Logging temperature %lu.%lu.", temp / 10, temp % 10);
 		update_temperature_at = m + TEMPERATURE_UPDATE_INTERVAL;
-		snprintf(webstr, sizeof(webstr), "/isOpen/logger.php?sodatemp=%lu.%01lu", temp / 10, temp % 10);
+		snprintf(webstr, sizeof(webstr), "/isOpen/logger.php?sodatemp=%lu.%lu", temp / 10, temp % 10);
 		http_get("temp", temp_host, webstr);
 		}
 	}
