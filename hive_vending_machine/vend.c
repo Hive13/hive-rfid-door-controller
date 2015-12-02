@@ -121,7 +121,7 @@ void vend_check(void)
 	for (i = soda_count - 1; i < soda_count; i--)
 		{
 		mask <<= 1;
-		if (digitalRead(sodaButtons[i][0]))
+		if (!digitalRead(sodaButtons[i][0]))
 			mask |= 1;
 		}
 	
