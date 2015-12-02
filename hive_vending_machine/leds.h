@@ -7,6 +7,7 @@ extern "C" {
 
 void randomColors(uint8_t wait, uint8_t numberCycles);
 void leds_one(char which, uint32_t color);
+void leds_two(char which, uint32_t color1, uint32_t color_2);
 void leds_init(void);
 void leds_off(void);
 void leds_busy(void);

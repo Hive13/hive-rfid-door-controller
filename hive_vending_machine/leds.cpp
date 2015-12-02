@@ -77,6 +77,24 @@ void leds_one(char which, uint32_t color)
 	leds.show();
 	}
 
+void leds_two(char which, uint32_t color1, uint32_t color2)
+	{
+	unsigned char i;
+
+	for(i = 0; i < leds.numPixels(); i++)
+		{
+		if (which >= 0 && which < soda_count && (sodaButtons[which][2] == i || sodaButtons[which][3] == i))
+			leds.setPixelColor(i, color1);
+		else if (which == soda_count -  1 && (sodaButtons[0][2] == i || sodaButtons[0][3] == i))
+			leds.setPixelColor(i, color2);
+		else if (which >= 0 && which < soda_count - 1 && (sodaButtons[which + 1][2] == i || sodaButtons[which + 1][3] == i))
+			leds.setPixelColor(i, color2);
+		else
+			leds.setPixelColor(i, 0);
+		}
+	leds.show();
+	}
+
 // Create a 24 bit color value from R,G,B
 uint32_t Color(byte r, byte g, byte b)
 	{
