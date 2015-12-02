@@ -19,24 +19,40 @@ int sodaButtons[][4] = {
 };
 
 unsigned char soda_count = SODA_COUNT;
+static unsigned char larsen_on = 0;
 
 void set_vend(char c)
 	{
 	static unsigned char color_at = 0;
 	static char lp = -1;
+	static unsigned short larsen_at = 0;
 	char i;
-	uint32_t cur_color;
+	uint32_t cur_color, cur_color2;
 
 	if (lp != c)
 		{
 		color_at = 0;
 		lp = c;
+		larsen_at = 0;
 		}
 
 	for (i = 0; i < SODA_COUNT; i++)
 		digitalWrite(sodaButtons[i][1], c != i);
-	cur_color = Wheel(color_at++);
-	leds_one(c, cur_color);
+	if (c == -1 && larsen_on)
+		{
+		c = larsen_at / 256;
+		cur_color2 = Color((larsen_at % 256), (larsen_at % 256), (larsen_at % 256));
+		cur_color = Color(255 - (larsen_at % 256), 255 - (larsen_at % 256), 255 - (larsen_at % 256));
+		larsen_at++;
+		if (larsen_at >= (256 * 8))
+			larsen_at = 0;
+		leds_two(c, cur_color, cur_color2);
+		}
+	else
+		{
+		cur_color = Wheel(color_at++);
+		leds_one(c, cur_color);
+		}
 	}
 
 void do_random_vend(void)
@@ -130,6 +146,10 @@ void vend_check(void)
 		temperature_check();
 		return;
 		}
+	else if (mask == 0x06)
+		larsen_on = 1;
+	else if (mask == 0x0A)
+		larsen_on = 0;
 	else if (mask == (1 << RANDOM_SODA_NUMBER))
 		do_random_vend();
 	else if (!(mask & (mask - 1))) /* If only one bit is set in the mask */
