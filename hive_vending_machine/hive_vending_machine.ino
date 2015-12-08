@@ -16,15 +16,18 @@
 #include "vend.h"
 #include "http.h"
 #include "log.h"
+#include "sha256.h"
 
 static WIEGAND wg;
 static byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
 static char kHostname[] = "door.at.hive13.org";
+void hmac_test(void);
 
 void setup()
 	{
 	char kPath[] = "/vendtest";
 
+	hmac_test();
 	log_begin();
 	
 	log_msg("Hive13 Vending Arduino Shield v.04");
