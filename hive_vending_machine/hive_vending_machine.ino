@@ -27,11 +27,10 @@ void setup()
 	{
 	char kPath[] = "/vendtest";
 
-	hmac_test();
 	log_begin();
-	
 	log_msg("Hive13 Vending Arduino Shield v.04");
 	leds_init();
+	vend_init();
 	log_msg("Initializing Ethernet Controller.");
 	while (Ethernet.begin(mac) != 1)
 		{
@@ -42,7 +41,6 @@ void setup()
 	http_get("door test", kHostname, kPath);
 	wg.begin();
 	temperature_init();
-	vend_init();
 	}
 
 void loop()
