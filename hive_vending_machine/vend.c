@@ -20,6 +20,7 @@ unsigned char sodaButtons[][4] = {
 
 unsigned char soda_count = SODA_COUNT;
 static unsigned char larsen_on = 0;
+extern unsigned char sold_out;
 
 void set_vend(char c)
 	{
@@ -92,6 +93,9 @@ void vend_init(void)
 	{
 	unsigned char i;
 
+	DDRK = 0;
+	PORTK = 0xFF;
+
 	pinMode(VEND_PIN, OUTPUT);
 	pinMode(WIEGAND_LIGHT_PIN, OUTPUT);
 	pinMode(BEEP_PIN, OUTPUT);
@@ -107,6 +111,7 @@ void vend_init(void)
 		pinMode(sodaButtons[i][0], INPUT);
 		digitalWrite(sodaButtons[i][0], HIGH);
 		pinMode(sodaButtons[i][1], OUTPUT);
+		digitalWrite(sodaButtons[i][1], HIGH);
 		}
 	}
 
@@ -117,6 +122,7 @@ void vend_check(void)
 	static unsigned char prev_mask = 0, debounce_count;
 
 	// Cycle through all eight buttons, check their values, and do the appropriate event
+	digitalWrite(BEEP_PIN, HIGH);
 	for (i = soda_count - 1; i < soda_count; i--)
 		{
 		mask <<= 1;
@@ -139,7 +145,15 @@ void vend_check(void)
 	if (!mask)
 		;
 	else if (mask == 0x05)
-		pressed = 4;
+		{
+		if (sold_out & 0x10)
+			{
+			digitalWrite(BEEP_PIN, LOW);
+			pressed = -1;
+			}
+		else
+			pressed = 4;
+		}
 	else if (mask == 0x03)
 		{
 		temperature_check();
@@ -153,9 +167,17 @@ void vend_check(void)
 		do_random_vend();
 	else if (!(mask & (mask - 1))) /* If only one bit is set in the mask */
 		{
-		pressed = 0;
-		while (mask >>= 1)
-			pressed++;
+		if (mask & sold_out)
+			{
+			digitalWrite(BEEP_PIN, LOW);
+			pressed = -1;
+			}
+		else
+			{
+			pressed = 0;
+			while (mask >>= 1)
+				pressed++;
+			}
 		}
 	set_vend(pressed);
 	}

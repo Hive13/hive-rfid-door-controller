@@ -21,11 +21,28 @@
 static WIEGAND wg;
 static byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
 static char kHostname[] = "door.at.hive13.org";
+static volatile unsigned char sold_out_t = 0;
+static volatile char sold_out_changed = 0;
+static volatile unsigned long sold_out_changed_at = 0;
+unsigned char sold_out = 0;
 void hmac_test(void);
+
+ISR(PCINT2_vect)
+	{
+	sold_out_t = PINK;
+	sold_out_changed = 1;
+	sold_out_changed_at = millis();
+	}
 
 void setup()
 	{
 	char kPath[] = "/vendtest";
+
+	cli();
+	PCICR |= 1 << PCIE2;
+	PCMSK2 = 0xFF;
+	sold_out = PINK;
+	sei();
 
 	log_begin();
 	log_msg("Hive13 Vending Arduino Shield v.04");
@@ -50,6 +67,12 @@ void loop()
 	int err;
 
 	handle_temperature();
+	if (sold_out_changed && sold_out_changed_at < millis() - 250)
+		{
+		sold_out = sold_out_t;
+		log_msg("Sold out: %02hhX", sold_out);
+		sold_out_changed = 0;
+		}
 	
 	if(wg.available())
 		{

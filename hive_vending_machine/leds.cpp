@@ -12,6 +12,7 @@
 static Adafruit_WS2801 leds = Adafruit_WS2801(LED_COUNT, LED_DATA_PIN, LED_CLOCK_PIN);
 extern unsigned char soda_count;
 extern unsigned char sodaButtons[][4];
+extern unsigned char sold_out;
 
 void leds_init(void)
 	{
@@ -60,6 +61,26 @@ void leds_off(void)
 
 	for(i = 0; i < leds.numPixels(); i++)
 		leds.setPixelColor(i, 0);
+	for (i = 0; i < soda_count; i++)
+		if (sold_out & (1 << i))
+			{
+			leds.setPixelColor(sodaButtons[i][2], 255, 128, 0);
+			leds.setPixelColor(sodaButtons[i][3], 255, 128, 0);
+			}
+	leds.show();
+	}
+
+void leds_one_only(char which, uint32_t color)
+	{
+	unsigned char i;
+
+	for (i = 0; i < leds.numPixels(); i++)
+		{
+		if (which >= 0 && which < soda_count && (sodaButtons[which][2] == i || sodaButtons[which][3] == i))
+			leds.setPixelColor(i, color);
+		else
+			leds.setPixelColor(i, 0);
+		}
 	leds.show();
 	}
 
@@ -67,13 +88,19 @@ void leds_one(char which, uint32_t color)
 	{
 	unsigned char i;
 
-	for(i = 0; i < leds.numPixels(); i++)
+	for (i = 0; i < leds.numPixels(); i++)
 		{
 		if (which >= 0 && which < soda_count && (sodaButtons[which][2] == i || sodaButtons[which][3] == i))
 			leds.setPixelColor(i, color);
 		else
 			leds.setPixelColor(i, 0);
 		}
+	for (i = 0; i < soda_count; i++)
+		if (sold_out & (1 << i))
+			{
+			leds.setPixelColor(sodaButtons[i][2], 255, 128, 0);
+			leds.setPixelColor(sodaButtons[i][3], 255, 128, 0);
+			}
 	leds.show();
 	}
 
@@ -92,6 +119,12 @@ void leds_two(char which, uint32_t color1, uint32_t color2)
 		else
 			leds.setPixelColor(i, 0);
 		}
+	for (i = 0; i < soda_count; i++)
+		if (sold_out & (1 << i))
+			{
+			leds.setPixelColor(sodaButtons[i][2], 255, 128, 0);
+			leds.setPixelColor(sodaButtons[i][3], 255, 128, 0);
+			}
 	leds.show();
 	}
 

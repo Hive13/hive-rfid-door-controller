@@ -69,7 +69,7 @@ void temperature_check(void)
 		p = (temp % 20) * 12;
 		color = Color(0 + p, 0, 255 - p);
 		}
-	leds_one(light, color);
+	leds_one_only(light, color);
 	}
 
 uint32_t get_temperature(void)
