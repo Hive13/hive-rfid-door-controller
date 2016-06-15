@@ -7,15 +7,16 @@
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and then the two led numbers
-unsigned char sodaButtons[][4] = {
-	{22, 37, 18, 19},
-	{24, 35, 16, 17},
-	{26, 33, 14, 15},
-	{28, 31, 12, 13},
-	{30, 29, 10, 11},
-	{32, 27, 8, 9},
-	{34, 25, 6, 7},
-	{36, 23, 4, 5},
+struct soda sodas[] = {
+//unsigned char sodaButtons[][4] = {
+	{22, 37, 18, 19, 0},
+	{24, 35, 16, 17, 0},
+	{26, 33, 14, 15, 0},
+	{28, 31, 12, 13, 0},
+	{30, 29, 10, 11, 0},
+	{32, 27, 8, 9, 0},
+	{34, 25, 6, 7, 0},
+	{36, 23, 4, 5, 0},
 };
 
 unsigned char soda_count = SODA_COUNT;
@@ -38,7 +39,7 @@ void set_vend(char c)
 		}
 
 	for (i = 0; i < SODA_COUNT; i++)
-		digitalWrite(sodaButtons[i][1], c != i);
+		digitalWrite(sodas[i].relay_pin, c != i);
 	if (c == -1 && larsen_on)
 		{
 		c = larsen_at / 256;
@@ -68,7 +69,7 @@ void do_random_vend(void)
 	// Choose the random soda to vend
 	randomSoda = random() % SODA_COUNT;
 	leds_one(randomSoda, randomSodaColor);
-	digitalWrite(sodaButtons[randomSoda][1], 0);
+	digitalWrite(sodas[randomSoda].relay_pin, 0);
 	log_msg("Random soda is %d!\n", randomSoda);
 	// Let the chosen soda stay lit for one second
 	delay(1000);
@@ -108,10 +109,10 @@ void vend_init(void)
 	*/
 	for(i = 0; i < soda_count; i++)
 		{
-		pinMode(sodaButtons[i][0], INPUT);
-		digitalWrite(sodaButtons[i][0], HIGH);
-		pinMode(sodaButtons[i][1], OUTPUT);
-		digitalWrite(sodaButtons[i][1], HIGH);
+		pinMode(sodas[i].switch_pin, INPUT);
+		digitalWrite(sodas[i].switch_pin, HIGH);
+		pinMode(sodas[i].relay_pin, OUTPUT);
+		digitalWrite(sodas[i].relay_pin, HIGH);
 		}
 	}
 
@@ -126,7 +127,7 @@ void vend_check(void)
 	for (i = soda_count - 1; i < soda_count; i--)
 		{
 		mask <<= 1;
-		if (!digitalRead(sodaButtons[i][0]))
+		if (!digitalRead(sodas[i].switch_pin))
 			mask |= 1;
 		}
 	
