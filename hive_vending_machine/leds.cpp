@@ -38,6 +38,18 @@ void leds_busy(void)
 	leds.show();
 	}
 
+inline void leds_set_color(struct soda *s, uint32_t color)
+	{
+	leds.setPixelColor(s->leds[0], color);
+	leds.setPixelColor(s->leds[1], color);
+	}
+
+void leds_set_color(struct soda *s, uint8_t r, uint8_t g, uint8_t b)
+	{
+	leds.setPixelColor(s->leds[0], r, g, b);
+	leds.setPixelColor(s->leds[1], r, g, b);
+	}
+
 /* LED Helper functions */
 void randomColors(uint8_t wait, uint8_t numberCycles)
 	{
@@ -48,8 +60,7 @@ void randomColors(uint8_t wait, uint8_t numberCycles)
 		{
 		randomLeds = random(0, 8);
 		randomLedsColor = Wheel(random(0, 255));
-		leds.setPixelColor(sodas[randomLeds].leds[0], randomLedsColor);
-		leds.setPixelColor(sodas[randomLeds].leds[1], randomLedsColor);
+		leds_set_color(&(sodas[randomLeds]), randomLedsColor);
 		leds.show();
 		delay(wait);
 		}
@@ -63,10 +74,7 @@ void leds_off(void)
 		leds.setPixelColor(i, 0);
 	for (i = 0; i < soda_count; i++)
 		if (sold_out & (1 << i))
-			{
-			leds.setPixelColor(sodas[i].leds[0], 255, 128, 0);
-			leds.setPixelColor(sodas[i].leds[1], 255, 128, 0);
-			}
+			leds_set_color(&(sodas[i]), 255, 128, 0);
 	leds.show();
 	}
 
@@ -97,10 +105,7 @@ void leds_one(char which, uint32_t color)
 		}
 	for (i = 0; i < soda_count; i++)
 		if (sold_out & (1 << i))
-			{
-			leds.setPixelColor(sodas[i].leds[0], 255, 128, 0);
-			leds.setPixelColor(sodas[i].leds[1], 255, 128, 0);
-			}
+			leds_set_color(&(sodas[i]), 255, 128, 0);
 	leds.show();
 	}
 
@@ -121,10 +126,7 @@ void leds_two(char which, uint32_t color1, uint32_t color2)
 		}
 	for (i = 0; i < soda_count; i++)
 		if (sold_out & (1 << i))
-			{
-			leds.setPixelColor(sodas[i].leds[0], 255, 128, 0);
-			leds.setPixelColor(sodas[i].leds[1], 255, 128, 0);
-			}
+			leds_set_color(&(sodas[i]), 255, 128, 0);
 	leds.show();
 	}
 
