@@ -70,6 +70,8 @@ void do_random_vend(unsigned char kind)
 	while (--tries) /* Eventually break the loop if shit hits the fan */
 		{
 		randomSoda = random() % SODA_COUNT;
+		if (sold_out & (1 << randomSoda))
+			continue;
 		if (kind == KIND_ANY)
 			break;
 		else if (kind == KIND_DIET && sodas[randomSoda].diet)
