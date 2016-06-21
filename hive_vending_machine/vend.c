@@ -56,10 +56,10 @@ void set_vend(char c)
 		}
 	}
 
-void do_random_vend(void)
+void do_random_vend(unsigned char kind)
 	{
 	uint32_t randomSodaColor;
-	unsigned char randomSoda;
+	unsigned char randomSoda, tries = 0;
 
 	// Pick the color that the chosen soda will be
 	randomSodaColor = Wheel(random() & 0xFF);
@@ -67,7 +67,16 @@ void do_random_vend(void)
 	randomColors(20, 5);
 	log_msg("Vending random soda!");
 	// Choose the random soda to vend
-	randomSoda = random() % SODA_COUNT;
+	while (--tries) /* Eventually break the loop if shit hits the fan */
+		{
+		randomSoda = random() % SODA_COUNT;
+		if (kind == KIND_ANY)
+			break;
+		else if (kind == KIND_DIET && sodas[randomSoda].diet)
+			break;
+		else if (kind == KIND_REGULAR && !sodas[randomSoda].diet)
+			break;
+		}
 	leds_one(randomSoda, randomSodaColor);
 	digitalWrite(sodas[randomSoda].relay_pin, 0);
 	log_msg("Random soda is %d!\n", randomSoda);
@@ -165,7 +174,13 @@ void vend_check(void)
 	else if (mask == 0x0A)
 		larsen_on = 0;
 	else if (mask == (1 << RANDOM_SODA_NUMBER))
-		do_random_vend();
+		do_random_vend(KIND_ANY);
+	else if (mask == 0x30)
+		do_random_vend(KIND_DIET);
+	else if (mask == 0xC0)
+		do_random_vend(KIND_REGULAR);
+	else if (mask == 0xA0)
+		digitalWrite(BEEP_PIN, LOW);
 	else if (!(mask & (mask - 1))) /* If only one bit is set in the mask */
 		{
 		if (mask & sold_out)

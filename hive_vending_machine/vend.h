@@ -14,7 +14,7 @@ struct soda
 	};
 
 void set_vend(char c);
-void do_random_vend(void);
+void do_random_vend(unsigned char kind);
 void do_vend(void);
 void vend_check(void);
 void vend_init(void);
@@ -29,5 +29,9 @@ void vend_init(void);
 #define BEEP_PIN 9
 #define WIEGAND_LIGHT_PIN 8
 #define MIN_DEBOUNCE_COUNT 20
+
+#define KIND_ANY 0
+#define KIND_REGULAR 1
+#define KIND_DIET 2
 
 #endif /* __VEND_H */
