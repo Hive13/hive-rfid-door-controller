@@ -4,8 +4,8 @@ char ssid[] = "hive13int";
 char pass[] = "hive13int";
 int status = WL_IDLE_STATUS;
 
-int latch_pin  = D2;
-int clock_pin  = D4;
+int latch_pin  = D0;
+int clock_pin  = D8;
 
 #define LED_ROWS     7
 #define LEDS_PER_ROW 8
@@ -24,7 +24,7 @@ struct led_row
 void leds_init(void)
 	{
 	unsigned char i;
-	int pins[] = {D0, D1, D2, D3, D4, D5, D6};
+	int pins[] = {D1, D2, D3, D4, D5, D6, D7};
 
 	pinMode(latch_pin, OUTPUT);
 	pinMode(clock_pin, OUTPUT);
@@ -54,18 +54,18 @@ void leds_set_current(unsigned char current)
 		(c << 10) |
 		(c << 0);
 	for (i = 0; i < LEDS_PER_ROW; i++)
-		for (mask = 0x8000; mask; mask >>= 1)
+		for (mask = 0x80000000; mask; mask >>= 1)
 			{
 			for (j = 0; j < LED_ROWS; j++)
 				digitalWrite(rows[j].pin, !!(packet & mask));
 			digitalWrite(clock_pin, HIGH);
-			delay(1);
+			delay(2);
 			digitalWrite(clock_pin, LOW);
 			}
 
-	delay(1);
+	delay(2);
 	digitalWrite(latch_pin,HIGH); // latch data into registers
-	delay(1);
+	delay(2);
 	digitalWrite(latch_pin,LOW);
 	}
 
@@ -86,25 +86,26 @@ void leds_update(void)
 				((rows[j].leds[i].r & 0x3FF) << 10) |
 				((rows[j].leds[i].g & 0x3FF) << 0);
 			}
-		for (mask = 0x8000; mask; mask >>= 1)
+		for (mask = 0x80000000; mask; mask >>= 1)
 			{
 			for (j = 0; j < LED_ROWS; j++)
 				digitalWrite(rows[j].pin, !!(packet[j] & mask));
 			digitalWrite(clock_pin, HIGH);
-			delay(1);
+			delay(2);
 			digitalWrite(clock_pin, LOW);
 			}
 		}
 
-	delay(1);
+	delay(2);
 	digitalWrite(latch_pin,HIGH); // latch data into registers
-	delay(1);
+	delay(2);
 	digitalWrite(latch_pin,LOW);
 	}
 
 void loop(void)
 	{
-	unsigned char l = 0, i, j;
+	static unsigned char l = 0;
+	unsigned char i, j;
 
 	for (i = 0; i < LED_ROWS; i++)
 		for (j = 0; j < LEDS_PER_ROW; j++)
@@ -126,7 +127,7 @@ void loop(void)
 
 	l = (l + 1) % 3;
 	leds_update();
-	delay(250);
+	delay(500);
 	}
 
 void setup(void)
