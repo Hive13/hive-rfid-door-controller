@@ -7,19 +7,19 @@ int status = WL_IDLE_STATUS;
 int latch_pin  = D0;
 int clock_pin  = D8;
 
-#define LED_ROWS     7
-#define LEDS_PER_ROW 8
+#define LED_COLS     7
+#define LEDS_PER_COL 8
 
 struct led
 	{
 	unsigned short r, g, b;
 	};
 
-struct led_row
+struct led_col
 	{
 	int pin;
-	struct led leds[LEDS_PER_ROW];
-	} rows[LED_ROWS];
+	struct led leds[LEDS_PER_COL];
+	} cols[LED_COLS];
 
 void leds_init(void)
 	{
@@ -32,11 +32,11 @@ void leds_init(void)
 	digitalWrite(latch_pin, LOW);
 	digitalWrite(clock_pin, LOW);
 
-	for (i = 0; i < LED_ROWS; i++)
+	for (i = 0; i < LED_COLS; i++)
 		{
-		rows[i].pin = pins[i];
-		pinMode(rows[i].pin, OUTPUT);
-		memset(rows[i].leds, 0, LEDS_PER_ROW * sizeof(struct led));
+		cols[i].pin = pins[i];
+		pinMode(cols[i].pin, OUTPUT);
+		memset(cols[i].leds, 0, LEDS_PER_COL * sizeof(struct led));
 		}
 	}
 
@@ -53,11 +53,11 @@ void leds_set_current(unsigned char current)
 		(c << 20) |
 		(c << 10) |
 		(c << 0);
-	for (i = 0; i < LEDS_PER_ROW; i++)
+	for (i = 0; i < LEDS_PER_COL; i++)
 		for (mask = 0x80000000; mask; mask >>= 1)
 			{
-			for (j = 0; j < LED_ROWS; j++)
-				digitalWrite(rows[j].pin, !!(packet & mask));
+			for (j = 0; j < LED_COLS; j++)
+				digitalWrite(cols[j].pin, !!(packet & mask));
 			digitalWrite(clock_pin, HIGH);
 			delay(2);
 			digitalWrite(clock_pin, LOW);
@@ -71,25 +71,25 @@ void leds_set_current(unsigned char current)
 
 void leds_update(void)
 	{
-	unsigned long packet[LED_ROWS], mask;
+	unsigned long packet[LED_COLS], mask;
 	unsigned char i, j;
 
 	digitalWrite(clock_pin, LOW);
 
-	for (i = 0; i < LEDS_PER_ROW; i++)
+	for (i = 0; i < LEDS_PER_COL; i++)
 		{
-		for (j = 0; j < LED_ROWS; j++)
+		for (j = 0; j < LED_COLS; j++)
 			{
 			packet[j] =
 				(((0x00) & 0x03) << 30) |
-				((rows[j].leds[i].b & 0x3FF) << 20) |
-				((rows[j].leds[i].r & 0x3FF) << 10) |
-				((rows[j].leds[i].g & 0x3FF) << 0);
+				((cols[j].leds[i].b & 0x3FF) << 20) |
+				((cols[j].leds[i].r & 0x3FF) << 10) |
+				((cols[j].leds[i].g & 0x3FF) << 0);
 			}
 		for (mask = 0x80000000; mask; mask >>= 1)
 			{
-			for (j = 0; j < LED_ROWS; j++)
-				digitalWrite(rows[j].pin, !!(packet[j] & mask));
+			for (j = 0; j < LED_COLS; j++)
+				digitalWrite(cols[j].pin, !!(packet[j] & mask));
 			digitalWrite(clock_pin, HIGH);
 			delay(2);
 			digitalWrite(clock_pin, LOW);
@@ -107,20 +107,20 @@ void loop(void)
 	static unsigned char l = 0;
 	unsigned char i, j;
 
-	for (i = 0; i < LED_ROWS; i++)
-		for (j = 0; j < LEDS_PER_ROW; j++)
+	for (i = 0; i < LED_COLS; i++)
+		for (j = 0; j < LEDS_PER_COL; j++)
 			{
-			memset(&(rows[i].leds[j]), 0, sizeof(struct led));
+			memset(&(cols[i].leds[j]), 0, sizeof(struct led));
 			switch ((l + i) % 3)
 				{
 				case 0:
-					rows[i].leds[j].r = 0x3FF;
+					cols[i].leds[j].r = 0x3FF;
 					break;
 				case 1:
-					rows[i].leds[j].g = 0x3FF;
+					cols[i].leds[j].g = 0x3FF;
 					break;
 				case 2:
-					rows[i].leds[j].b = 0x3FF;
+					cols[i].leds[j].b = 0x3FF;
 					break;
 				}
 			}
