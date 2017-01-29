@@ -4,3 +4,6 @@
 [submodule "hive_access/cJSON"]
 	path = hive_access/cJSON
 	url = https://github.com/DaveGamble/cJSON.git
+[submodule "arduinolibs"]
+	path = arduinolibs
+	url = https://github.com/rweather/arduinolibs.git
