@@ -2,6 +2,10 @@
 #include <Crypto.h>
 #include <SHA512.h>
 #include <CBC.h>
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
+
 #include "cJSON.h"
 
 #define SHA512_SZ 64
@@ -13,8 +17,65 @@
 
 static WIEGAND wg;
 static char *location = "annex";
+static char *ssid = "hive13int";
+static char *pass = "hive13int";
 static char key[] = {65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65};
 static char *hex = "0123456789ABCDEF";
+int status = WL_IDLE_STATUS;
+
+unsigned char val(char *i)
+	{
+	unsigned char ret = 0;
+	char c;
+
+	c = (*i++) | 0x20;
+	if (c >= '0' && c <= '9')
+		ret = ((c - '0') & 0x0F) << 4;
+	else if (c >= 'a' && c <= 'f')
+		ret = ((c - 'a' + 10) & 0x0F) << 4;
+
+	c = (*i) | 0x20;
+	if (c >= '0' && c <= '9')
+		ret |= ((c - '0') & 0x0F);
+	else if (c >= 'a' && c <= 'f')
+		ret |= ((c - 'a' + 10) & 0x0F);
+
+	return ret;
+	}
+
+unsigned short get_response(char *data, char **response)
+	{
+	HTTPClient http;
+	const char host[] = "http://172.16.3.78/access.pl";
+	int code;
+	unsigned char i, j;
+	String body;
+	struct cJSON *result;
+	char *cksum, provided_cksum[SHA512_SZ];
+
+	http.begin(host);
+
+	code = http.POST((unsigned char *)data, strlen(data));
+	Serial.print("Got code ");
+	Serial.println(code);
+
+	body = http.getString();
+	Serial.print("Body: ");
+	Serial.println(body);
+	result = cJSON_Parse(body.c_str());
+	cksum = cJSON_GetObjectItem(result, "checksum")->valuestring;
+	get_hash(cJSON_GetObjectItem(result, "data"), provided_cksum);
+
+	for (i = 0; i < SHA512_SZ; i++)
+		{
+		j = val(cksum + (2 * i));
+		code = (provided_cksum[i] - j);
+		if (code)
+			break;
+		}
+	Serial.print("Compare: ");
+	Serial.println(code);
+	}
 
 void get_hash(struct cJSON *data, char *sha_buf)
 	{
@@ -65,6 +126,7 @@ void check_badge(unsigned long badge_num)
 	cJSON_AddItemToObjectCS(data, "badge", cJSON_CreateNumber(badge_num));
 	cJSON_AddItemToObjectCS(data, "location", cJSON_CreateString(location));
 	cJSON_AddItemToObjectCS(data, "random", ran);
+	cJSON_AddItemToObjectCS(data, "version", cJSON_CreateNumber(1));
 	get_hash(data, sha_buf);
 
 	for (i = 0, ptr = sha_buf_out; i < sha.hashSize(); i++)
@@ -79,6 +141,8 @@ void check_badge(unsigned long badge_num)
 	out = cJSON_Print(root);
 	cJSON_Delete(root);
 	Serial.println(out);
+
+	get_response(out, NULL);
 	free(out);
 	}
 
@@ -88,7 +152,18 @@ void setup(void)
 	pinMode(BEEP_PIN, OUTPUT);
 
 	wg.begin(D0_PIN, D0_PIN, D1_PIN, D1_PIN);
-	Serial.begin(9600);
+	Serial.begin(115200);
+
+	Serial.print("Connecting to SSID ");
+	Serial.println(ssid);
+
+	status = WiFi.begin(ssid, pass);
+	while (WiFi.status() != WL_CONNECTED)
+		{
+		Serial.print(".");
+		delay(500);
+		}
+	Serial.print("connected!");
 
 	delay(500);
 	digitalWrite(BEEP_PIN, HIGH);
