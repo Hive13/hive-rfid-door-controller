@@ -15,6 +15,11 @@
 #define D0_PIN D1
 #define D1_PIN D2
 
+#define RESPONSE_BAD_JSON  3
+#define RESPONSE_BAD_HTTP  2
+#define RESPONSE_BAD_CKSUM 1
+#define RESPONSE_GOOD      0
+
 static WIEGAND wg;
 static char *location = "annex";
 static char *ssid = "hive13int";
@@ -22,6 +27,10 @@ static char *pass = "hive13int";
 static char key[] = {65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65};
 static char *hex = "0123456789ABCDEF";
 int status = WL_IDLE_STATUS;
+
+void open_door(void)
+	{
+	}
 
 unsigned char val(char *i)
 	{
@@ -43,28 +52,28 @@ unsigned char val(char *i)
 	return ret;
 	}
 
-unsigned short get_response(char *data, char **response)
+unsigned short get_response(char *data, struct cJSON **response)
 	{
 	HTTPClient http;
 	const char host[] = "http://172.16.3.78/access.pl";
 	int code;
 	unsigned char i, j;
 	String body;
-	struct cJSON *result;
+	struct cJSON *result, *data, *response;
 	char *cksum, provided_cksum[SHA512_SZ];
 
 	http.begin(host);
 
 	code = http.POST((unsigned char *)data, strlen(data));
-	Serial.print("Got code ");
-	Serial.println(code);
+	if (code != 200)
+		return RESPONSE_BAD_HTTP;
 
-	body = http.getString();
-	Serial.print("Body: ");
-	Serial.println(body);
+	body   = http.getString();
 	result = cJSON_Parse(body.c_str());
-	cksum = cJSON_GetObjectItem(result, "checksum")->valuestring;
-	get_hash(cJSON_GetObjectItem(result, "data"), provided_cksum);
+	cksum  = cJSON_GetObjectItem(result, "checksum")->valuestring;
+	data   = cJSON_DetachItemFromObject(result, "data");
+
+	get_hash(data, provided_cksum);
 
 	for (i = 0; i < SHA512_SZ; i++)
 		{
@@ -73,8 +82,26 @@ unsigned short get_response(char *data, char **response)
 		if (code)
 			break;
 		}
-	Serial.print("Compare: ");
-	Serial.println(code);
+	
+	if (code)
+		{
+		cJSON_Delete(data);
+		return RESPONSE_BAD_CKSUM;
+		}
+	
+	response = cJSON_DetachItemFromObject(data, "response");
+	if (response->type != cJSON_True)
+		{
+		cJSON_Delete(data);
+		return RESPONSE_BAD_JSON;
+		}
+
+	if (response)
+		*response = data;
+	else
+		cJSON_Delete(data);
+
+	return RESPONSE_GOOD;
 	}
 
 void get_hash(struct cJSON *data, char *sha_buf)
@@ -101,7 +128,7 @@ void check_badge(unsigned long badge_num)
 		*data = cJSON_CreateObject(),
 		*root = cJSON_CreateObject(),
 		*ran  = cJSON_CreateArray(),
-		*json, *prev;
+		*json, *prev, *result;
 	unsigned char i;
 	unsigned long r;
 	SHA512 sha;
@@ -142,7 +169,13 @@ void check_badge(unsigned long badge_num)
 	cJSON_Delete(root);
 	Serial.println(out);
 
-	get_response(out, NULL);
+	if (get_response(out, &result) == RESPONSE_OK)
+		{
+		json = cJSON_GetObjectItem(result, "access");
+		if (json->type == cJSON_True)
+			open_door();
+		cJSON_Delete(result);
+		}
 	free(out);
 	}
 
