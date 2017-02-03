@@ -52,7 +52,7 @@ unsigned char val(char *i)
 	return ret;
 	}
 
-unsigned short get_response(char *data, struct cJSON **response)
+unsigned short get_response(char *in, struct cJSON **out)
 	{
 	HTTPClient http;
 	const char host[] = "http://172.16.3.78/access.pl";
@@ -64,7 +64,7 @@ unsigned short get_response(char *data, struct cJSON **response)
 
 	http.begin(host);
 
-	code = http.POST((unsigned char *)data, strlen(data));
+	code = http.POST((unsigned char *)in, strlen(in));
 	if (code != 200)
 		return RESPONSE_BAD_HTTP;
 
@@ -96,8 +96,8 @@ unsigned short get_response(char *data, struct cJSON **response)
 		return RESPONSE_BAD_JSON;
 		}
 
-	if (response)
-		*response = data;
+	if (out)
+		*out = data;
 	else
 		cJSON_Delete(data);
 
@@ -169,7 +169,7 @@ void check_badge(unsigned long badge_num)
 	cJSON_Delete(root);
 	Serial.println(out);
 
-	if (get_response(out, &result) == RESPONSE_OK)
+	if (get_response(out, &result) == RESPONSE_GOOD)
 		{
 		json = cJSON_GetObjectItem(result, "access");
 		if (json->type == cJSON_True)
