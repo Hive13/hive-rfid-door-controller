@@ -7,6 +7,7 @@
 #include <ESP8266HTTPClient.h>
 
 #include "cJSON.h"
+#include "temp.h"
 
 #define SHA512_SZ 64
 #define RANDOM_REG32  ESP8266_DREG(0x20E44)
@@ -197,6 +198,8 @@ void setup(void)
 		delay(500);
 		}
 	Serial.print("connected!");
+	
+	temperature_init();
 
 	delay(500);
 	digitalWrite(BEEP_PIN, HIGH);
@@ -211,6 +214,7 @@ void loop(void)
 	char buf[255];
 
 	delay(100);
+	handle_temperature();
 	if (wg.available())
 		{
 		code = wg.getCode();
