@@ -98,8 +98,16 @@ if (defined($device))
 			my $badge  = $data->{badge};
 			my $item   = $data->{location} // $data->{item};
 			my $access = access($badge, $item);
-		
-			if (defined($access))
+			my $d_i    = $device
+				->search_related('device_items')
+				->search_related('item', { name => $item } );
+
+			if ($d_i->count() < 1)
+				{
+				$out_obj->{access} = JSON::PP->false();
+				$out_obj->{error} = "Device not authorized for " . $item;
+				}
+			elsif (defined($access))
 				{
 				$out_obj->{access} = JSON::PP->false();
 				$out_obj->{error} = $access;
