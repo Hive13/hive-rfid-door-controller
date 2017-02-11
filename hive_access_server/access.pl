@@ -60,6 +60,9 @@ sub access
 		if (!defined($member));
 	return "Invalid item"
 		if (!defined($item));
+	
+	return "Locked out"
+		if ($member->is_lockedout());
 
 	# Does the member have access to the item through any groups
 	my $access = $item
