@@ -27,8 +27,9 @@
 
 static WIEGAND wg;
 static char *location = "annex";
-static char *ssid = "hive13int";
-static char *pass = "hive13int";
+static char *device   = "annex";
+static char *ssid     = "hive13int";
+static char *pass     = "hive13int";
 static char key[] = {65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65};
 static char *hex = "0123456789ABCDEF";
 int status = WL_IDLE_STATUS;
@@ -79,10 +80,9 @@ void close_door(void *junk)
 void open_door(void)
 	{
 	unsigned long time = millis() + DOOR_OPEN_TIME;
-	Serial.println("Opening.");
+
 	digitalWrite(DOOR_PIN, LOW);
 	schedule(time, close_door, NULL);
-	Serial.println("Scheduled");
 	}
 
 unsigned char val(char *i)
@@ -119,7 +119,7 @@ unsigned short get_response(char *in, struct cJSON **out)
 
 	code = http.POST((unsigned char *)in, strlen(in));
 	if (code != 200)
-		return RESPONSE_BAD_HTTP;
+		return (RESPONSE_BAD_HTTP | ((code << 8)) & 0x7F00);
 
 	body   = http.getString();
 	result = cJSON_Parse(body.c_str());
@@ -135,6 +135,8 @@ unsigned short get_response(char *in, struct cJSON **out)
 		if (code)
 			break;
 		}
+
+	cJSON_Delete(result);
 	
 	if (code)
 		{
@@ -203,9 +205,9 @@ void check_badge(unsigned long badge_num)
 		prev = json;
 		}
 	
-	cJSON_AddItemToObjectCS(data, "badge", cJSON_CreateNumber(badge_num));
-	cJSON_AddItemToObjectCS(data, "location", cJSON_CreateString(location));
-	cJSON_AddItemToObjectCS(data, "random", ran);
+	cJSON_AddItemToObjectCS(data, "badge",   cJSON_CreateNumber(badge_num));
+	cJSON_AddItemToObjectCS(data, "item",    cJSON_CreateString(location));
+	cJSON_AddItemToObjectCS(data, "random",  ran);
 	cJSON_AddItemToObjectCS(data, "version", cJSON_CreateNumber(1));
 	get_hash(data, sha_buf);
 
@@ -216,19 +218,27 @@ void check_badge(unsigned long badge_num)
 		}
 	*ptr = 0;
 	
-	cJSON_AddItemToObject(root, "data", data);
-	cJSON_AddItemToObject(root, "checksum", cJSON_CreateString(sha_buf_out));
+	cJSON_AddItemToObjectCS(root, "data", data);
+	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(device));
+	cJSON_AddItemToObjectCS(root, "checksum", cJSON_CreateString(sha_buf_out));
 	out = cJSON_Print(root);
 	cJSON_Delete(root);
 	Serial.println(out);
 
-	if (get_response(out, &result) == RESPONSE_GOOD)
+	i = get_response(out, &result);
+
+	if (i == RESPONSE_GOOD)
 		{
 		json = cJSON_GetObjectItem(result, "access");
 		if (json->type == cJSON_True)
 			open_door();
-		cJSON_Delete(result);
 		}
+	else
+		{
+		Serial.print("Error: ");
+		Serial.println(i, DEC);
+		}
+	cJSON_Delete(result);
 	free(out);
 	}
 
