@@ -52,10 +52,20 @@ sub hash_it
 
 sub access
 	{
-	my $badge  = shift;
-	my $iname  = shift;
-	my $member = $schema->resultset('Member')->find( { accesscard => $badge } );
-	my $item   = $schema->resultset('Item')->find( { name => $iname } );
+	my $badge_no = shift;
+	my $iname    = shift;
+	my $item     = $schema->resultset('Item')->find( { name => $iname } );
+	my $badge    = $schema->resultset('Badge')->find( { badge_number => $badge_no } );
+	my $member;
+
+	if (defined($badge))
+		{
+		$member = $badge->member();
+		}
+	else
+		{
+		$member = $schema->resultset('Member')->find( { accesscard => $badge_no } );
+		}
 	return "Invalid badge"
 		if (!defined($member));
 	return "Invalid item"
