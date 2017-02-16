@@ -6,6 +6,7 @@ use lib 'lib';
 use JSON::PP;
 use Digest::SHA qw(sha512_hex);
 use Data::Dumper;
+use Try::Tiny;
 
 use Access::Schema;
 
@@ -14,14 +15,7 @@ my $db_pass = $ENV{DB_PASS};
 my $schema  = Access::Schema->connect("DBI:Pg:dbname=door;host=door.at.hive13.org", $db_user, $db_pass) || die $!;
 my $sorter  = sub { $JSON::PP::a cmp $JSON::PP::b; };
 my $js      = JSON::PP->new();
-my $random  = [];
 my $in;
-
-for (my $i = 0; $i < 16; $i++)
-	{
-	push(@{$random}, int(rand(256)));
-	}
-
 
 	{
 	local $/ = undef;
@@ -43,9 +37,17 @@ sub hash_it
 	my $key      = shift;
 	my $out_json = {};
 
-	$in_json->{random}    = $random;
-	$out_json->{data}     = $in_json;
-	$out_json->{checksum} = make_hash($in_json, $key);
+	$out_json->{data} = $in_json;
+	if (defined($key))
+		{
+		my $random = [];
+		for (my $i = 0; $i < 16; $i++)
+			{
+			push(@{$random}, int(rand(256)));
+			}
+		$in_json->{random}    = $random;
+		$out_json->{checksum} = make_hash($in_json, $key);
+		}
 
 	return $out_json;
 	}
@@ -91,7 +93,12 @@ sub access
 	return $access > 0 ? undef : "Access denied";
 	}
 
-my $json    = decode_json($in);
+my $json = {};
+my $key;
+try
+	{
+	$json = decode_json($in);
+	};
 my $out_obj = {};
 my $data    = $json->{data} // {};
 my $device  = $schema->resultset('Device')->find({ name => ($json->{device} // '') });
@@ -102,6 +109,7 @@ if (defined($device))
 	my $matches = $shasum eq uc($json->{checksum} // "");
 
 	$out_obj->{response} = $matches ? JSON::PP->true() : JSON::PP->false();
+	$key = $device->key();
 
 	if ($matches || 1)
 		{
@@ -134,9 +142,10 @@ if (defined($device))
 	}
 else
 	{
-	$out_obj->{aresponse} = JSON::PP->false();
+	$out_obj->{response} = JSON::PP->false();
+	$out_obj->{error} = 'Cannot find device.';
 	}
 
-my $out_str = $js->sort_by($sorter)->encode(hash_it($out_obj, $device->key()));
+my $out_str = $js->sort_by($sorter)->encode(hash_it($out_obj, $key));
 printf("Content-type: text/json\n\n");
 printf("%s\n", $out_str);
