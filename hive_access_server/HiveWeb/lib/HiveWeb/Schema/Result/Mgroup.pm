@@ -1,19 +1,22 @@
 use utf8;
-package Access::Schema::Result::Mgroup;
+package HiveWeb::Schema::Result::Mgroup;
 
 # Created by DBIx::Class::Schema::Loader
 # DO NOT MODIFY THE FIRST PART OF THIS FILE
 
 =head1 NAME
 
-Access::Schema::Result::Mgroup
+HiveWeb::Schema::Result::Mgroup
 
 =cut
 
 use strict;
 use warnings;
 
-use base 'DBIx::Class::Core';
+use Moose;
+use MooseX::NonMoose;
+use MooseX::MarkAsMethods autoclean => 1;
+extends 'DBIx::Class::Core';
 
 =head1 COMPONENTS LOADED
 
@@ -74,13 +77,13 @@ __PACKAGE__->set_primary_key("mgroup_id");
 
 Type: has_many
 
-Related object: L<Access::Schema::Result::ItemMgroup>
+Related object: L<HiveWeb::Schema::Result::ItemMgroup>
 
 =cut
 
 __PACKAGE__->has_many(
   "item_mgroups",
-  "Access::Schema::Result::ItemMgroup",
+  "HiveWeb::Schema::Result::ItemMgroup",
   { "foreign.mgroup_id" => "self.mgroup_id" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -89,13 +92,13 @@ __PACKAGE__->has_many(
 
 Type: has_many
 
-Related object: L<Access::Schema::Result::MemberMgroup>
+Related object: L<HiveWeb::Schema::Result::MemberMgroup>
 
 =cut
 
 __PACKAGE__->has_many(
   "member_mgroups",
-  "Access::Schema::Result::MemberMgroup",
+  "HiveWeb::Schema::Result::MemberMgroup",
   { "foreign.mgroup_id" => "self.mgroup_id" },
   { cascade_copy => 0, cascade_delete => 0 },
 );
@@ -121,9 +124,10 @@ Composing rels: L</member_mgroups> -> member
 __PACKAGE__->many_to_many("members", "member_mgroups", "member");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07042 @ 2017-02-10 20:44:52
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:9L72UzlCSxy94IY71RcU0w
+# Created by DBIx::Class::Schema::Loader v0.07045 @ 2017-02-24 20:22:54
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:VjPLaTCABZSDBW+tSIHHBg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration
+__PACKAGE__->meta->make_immutable;
 1;
