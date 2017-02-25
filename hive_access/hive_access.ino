@@ -108,14 +108,15 @@ unsigned char val(char *i)
 unsigned short get_response(char *in, struct cJSON **out)
 	{
 	HTTPClient http;
-	const char host[] = "http://172.16.3.78/access.pl";
+	const char host[] = "http://intweb.at.hive13.org/api/access";
 	int code;
 	unsigned char i, j;
 	String body;
-	struct cJSON *result, *data, *response;
+	struct cJSON *result, *data, *response, *cs;
 	char *cksum, provided_cksum[SHA512_SZ];
 
 	http.begin(host);
+	http.addHeader("Content-Type", "application/json");
 
 	code = http.POST((unsigned char *)in, strlen(in));
 	if (code != 200)
@@ -123,8 +124,22 @@ unsigned short get_response(char *in, struct cJSON **out)
 
 	body   = http.getString();
 	result = cJSON_Parse(body.c_str());
-	cksum  = cJSON_GetObjectItem(result, "checksum")->valuestring;
-	data   = cJSON_DetachItemFromObject(result, "data");
+
+	if (!result)
+		return RESPONSE_BAD_JSON;
+	
+	cs = cJSON_GetObjectItem(result, "checksum");
+	if (!cs)
+		{
+		cJSON_Delete(result);
+		return RESPONSE_BAD_JSON;
+		}
+
+	cksum = cs->valuestring;
+	data  = cJSON_DetachItemFromObject(result, "data");
+
+	if (!data)
+		return RESPONSE_BAD_JSON;
 
 	get_hash(data, provided_cksum);
 
@@ -137,7 +152,7 @@ unsigned short get_response(char *in, struct cJSON **out)
 		}
 
 	cJSON_Delete(result);
-	
+
 	if (code)
 		{
 		cJSON_Delete(data);
@@ -232,13 +247,13 @@ void check_badge(unsigned long badge_num)
 		json = cJSON_GetObjectItem(result, "access");
 		if (json->type == cJSON_True)
 			open_door();
+		cJSON_Delete(result);
 		}
 	else
 		{
 		Serial.print("Error: ");
 		Serial.println(i, DEC);
 		}
-	cJSON_Delete(result);
 	free(out);
 	}
 
