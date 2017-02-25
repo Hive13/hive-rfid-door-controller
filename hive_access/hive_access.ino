@@ -108,7 +108,7 @@ unsigned char val(char *i)
 unsigned short get_response(char *in, struct cJSON **out)
 	{
 	HTTPClient http;
-	const char host[] = "http://172.16.3.78/access.pl";
+	const char host[] = "http://intweb.at.hive13.org/api/access";
 	int code;
 	unsigned char i, j;
 	String body;
