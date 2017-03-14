@@ -23,7 +23,7 @@
 #define RESPONSE_BAD_CKSUM 1
 #define RESPONSE_GOOD      0
 
-#define DOOR_OPEN_TIME     1000
+#define DOOR_OPEN_TIME     4000
 
 static WIEGAND wg;
 static char *location = "annex";
@@ -163,8 +163,11 @@ unsigned short get_response(char *in, struct cJSON **out)
 	if (response->type != cJSON_True)
 		{
 		cJSON_Delete(data);
+		cJSON_Delete(response);
 		return RESPONSE_BAD_JSON;
 		}
+	
+	cJSON_Delete(response);
 
 	if (out)
 		*out = data;
