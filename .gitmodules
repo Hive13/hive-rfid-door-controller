@@ -1,9 +1,6 @@
-[submodule "vacuum_control/cJSON"]
-	path = vacuum_control/cJSON
-	url = https://github.com/DaveGamble/cJSON.git
-[submodule "hive_access/cJSON"]
-	path = hive_access/cJSON
-	url = https://github.com/DaveGamble/cJSON.git
 [submodule "arduinolibs"]
 	path = arduinolibs
 	url = https://github.com/rweather/arduinolibs.git
+[submodule "lib/cJSON"]
+	path = lib/cJSON
+	url = https://github.com/DrunkPyromaniac/cJSON.git
