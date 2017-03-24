@@ -90,6 +90,9 @@ char check_badge(unsigned long badge)
 
 	rc = parse_response(body, &resp, key, sizeof(key), rv, sizeof(rv));
 
+	if (rc != RESPONSE_GOOD)
+		return rc;
+
 	if (!(cs = cJSON_GetObjectItem(resp, "access")) || cs->type != cJSON_True)
 		{
 		cJSON_Delete(resp);
