@@ -9,6 +9,7 @@
 #include "http.h"
 
 static unsigned char key[] = {'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'};
+static char *device = "soda_machine";
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and then the two led numbers
@@ -218,7 +219,7 @@ signed char can_vend(unsigned long badge)
 	memcpy(rv + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
 	scan_count++;
 
-	//out = get_request(badge, location, location, key, sizeof(key), rv, sizeof(rv));
+	out = get_request(badge, "vend", NULL, device, key, sizeof(key), rv, sizeof(rv));
 	log_msg("Sending %s", out);
 
 	rc = http_get_json("intweb.at.hive13.org", "/api/access", out, &body);
