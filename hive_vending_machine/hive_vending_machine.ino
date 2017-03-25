@@ -14,13 +14,11 @@
 #include "leds.h"
 #include "temp.h"
 #include "vend.h"
-#include "http.h"
 #include "log.h"
 #include "sha256.h"
 
 static WIEGAND wg;
 static byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
-static char kHostname[] = "door.at.hive13.org";
 static volatile unsigned char sold_out_t = 0;
 static volatile char sold_out_changed = 0;
 static volatile unsigned long sold_out_changed_at = 0;
@@ -55,7 +53,6 @@ void setup()
 		delay(1000);
 		}
 	
-	http_get("door test", kHostname, kPath);
 	wg.begin();
 	temperature_init();
 	}
@@ -79,9 +76,7 @@ void loop()
 		code = wg.getCode();
 		log_msg("Scanned badge %lu/0x%lX, type W%d", code, code, wg.getWiegandType());
 
-		snprintf(host_path, sizeof(host_path), "/vendcheck/%lu/go", code);
-		err = http_get("vend", kHostname, host_path);
-		if (err == 200)
+		if (can_vend(code))
 			do_vend();
 		else
 			log_msg("Didn't receive the OK to vend...");
