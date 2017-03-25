@@ -1,9 +1,14 @@
 #include <Arduino.h>
 
+#include "cJSON.h"
+#include "API.h"
 #include "log.h"
 #include "vend.h"
 #include "leds.h"
 #include "temp.h"
+#include "http.h"
+
+static unsigned char key[] = {'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'};
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and then the two led numbers
@@ -198,5 +203,48 @@ void vend_check(void)
 			}
 		}
 	set_vend(pressed);
+	}
+
+signed char can_vend(unsigned long badge)
+	{
+	static unsigned long scan_count = 0;
+	char *body, *out;
+	struct cJSON *resp, *cs;
+	unsigned char rv[2 * sizeof(unsigned long)];
+	unsigned char rc;
+	unsigned long start = millis();
+
+	memcpy(rv, &start, sizeof(unsigned long));
+	memcpy(rv + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
+	scan_count++;
+
+	//out = get_request(badge, location, location, key, sizeof(key), rv, sizeof(rv));
+	log_msg("Sending %s", out);
+
+	rc = http_get_json("intweb.at.hive13.org", "/api/access", out, &body);
+	free(out);
+
+	if (rc != RESPONSE_GOOD)
+		{
+		log_msg("GET failed: %hhd", rc);
+		return rc;
+		}
+
+	log_msg("Body: %s", body);
+
+	rc = parse_response(body, &resp, key, sizeof(key), rv, sizeof(rv));
+	free(body);
+
+	if (rc != RESPONSE_GOOD)
+		return rc;
+
+	if (!(cs = cJSON_GetObjectItem(resp, "vend")) || cs->type != cJSON_True)
+		{
+		cJSON_Delete(resp);
+		return RESPONSE_ACCESS_DENIED;
+		}
+
+	cJSON_Delete(resp);
+	return RESPONSE_GOOD;
 	}
 

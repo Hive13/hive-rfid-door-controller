@@ -18,6 +18,7 @@ void do_random_vend(unsigned char kind);
 void do_vend(void);
 void vend_check(void);
 void vend_init(void);
+signed char can_vend(unsigned long badge);
 
 #ifdef __cplusplus
 };
