@@ -27,6 +27,18 @@ unsigned char val(char *i)
 	return ret;
 	}
 
+void print_hex(char *str, char *src, unsigned char sz)
+	{
+	unsigned char i;
+
+	for (i = 0; i < sz; i++)
+		{
+		*(str++) = hex[((src[i] & 0xF0) >> 4)];
+		*(str++) = hex[(src[i] & 0x0F)];
+		}
+	*str = 0;
+	}
+
 unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned char key_len, char *rv, unsigned char rv_len)
 	{
 	unsigned char i, j;
@@ -139,7 +151,7 @@ void get_hash(struct cJSON *data, char *sha_buf, char *key, unsigned char key_le
 	free(out);
 	}
 
-char *get_request(unsigned long badge_num, char *location, char *device, char *key, unsigned char key_len, char *rv, unsigned char rv_len)
+char *get_request(unsigned long badge_num, char *operation, char *location, char *device, char *key, unsigned char key_len, char *rv, unsigned char rv_len)
 	{
 	struct cJSON
 		*data = cJSON_CreateObject(),
@@ -148,8 +160,7 @@ char *get_request(unsigned long badge_num, char *location, char *device, char *k
 		*json, *prev, *result;
 	unsigned char i;
 	unsigned long r;
-	SHA512 sha;
-	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1], *ptr;
+	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
 	char *out;
 
 	for (i = 0; i < rv_len; i++)
@@ -166,17 +177,18 @@ char *get_request(unsigned long badge_num, char *location, char *device, char *k
 		}
 	
 	cJSON_AddItemToObjectCS(data, "badge",           cJSON_CreateNumber(badge_num));
-	cJSON_AddItemToObjectCS(data, "item",            cJSON_CreateString(location));
+	if (location)
+		cJSON_AddItemToObjectCS(data, "item",          cJSON_CreateString(location));
+	if (operation)
+		cJSON_AddItemToObjectCS(data, "operation",     cJSON_CreateString(operation));
+	else
+		cJSON_AddItemToObjectCS(data, "operation",     cJSON_CreateString("access"));
+		
 	cJSON_AddItemToObjectCS(data, "random_response", ran);
 	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(1));
 	get_hash(data, sha_buf, key, key_len);
 
-	for (i = 0, ptr = sha_buf_out; i < sha.hashSize(); i++)
-		{
-		*(ptr++) = hex[((sha_buf[i] & 0xF0) >> 4)];
-		*(ptr++) = hex[(sha_buf[i] & 0x0F)];
-		}
-	*ptr = 0;
+	print_hex(sha_buf_out, sha_buf, SHA512_SZ);
 	
 	cJSON_AddItemToObjectCS(root, "data", data);
 	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(device));
