@@ -78,14 +78,61 @@ run_it:
 
 void turn_on(void)
 	{
-	vacuum_cmd = 1;
-	server.send(200, "text/plain", "Commanded on.");
+	String name;
+	char *c_plus_plus_sucks;
+	void *p;
+	unsigned short i;
+
+	if (!server.hasArg("name"))
+		{
+		server.send(200, "text/plain", "Commanded on.");
+		vacuum_cmd = 1;
+		return;
+		}
+	name = server.arg("name");
+	c_plus_plus_sucks = strdup(name.c_str());
+	for (i = 0; i < nco_alloc; i++)
+		if (name_commanded_on[i])
+			break;
+	if (i == nco_alloc)
+		{
+		if (!nco_alloc)
+			nco_alloc = 4;
+		else
+			nco_alloc *= 2;
+		p = realloc(names_commanded_on, nco_alloc * sizeof(void *));
+		if (!p)
+			{
+			server.send(500, "text/plain", "No memory.  Shit.");
+			return;
+			}
+		names_commanded_on = (char **)p;
+		}
+	name_commanded_on[i] = c_plus_plus_sucks;
+	server.send(200, "text/plain", "Commanded on by name.");
 	}
 
 void turn_off(void)
 	{
-	vacuum_cmd = 0;
-	server.send(200, "text/plain", "Commanded off.");
+	String name;
+	unsigned short i;
+
+	if (!server.hasArg("name"))
+		{
+		vacuum_cmd = 0;
+		server.send(200, "text/plain", "Commanded off.");
+		return;
+		}
+	name = server.arg("name");
+	for (i = 0; i < nco_alloc; i++)
+		if (name_commanded_on[i] && !strcasecmp(name_commanded_on[i], name.c_str()))
+			{
+			free(name_commanded_on[i]);
+			name_commanded_on[i] = NULL;
+			server.send(200, "text/plain", "Commanded off by name.");
+			return;
+			}
+	server.send(404, "text/plain", "Can't find name to command off.");
 	}
 
 void loop(void)
