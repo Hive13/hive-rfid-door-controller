@@ -13,9 +13,12 @@
 #define VACUUM_PIN     D1
 
 static unsigned char
-	vacuum_cmd :1 = 0,
-	locked_out :1 = 0;
-
+	vacuum_cmd   = 0,
+	locked_out   = 0,
+	red_state    = 0,
+	green_state  = 0,
+	vacuum_state = 0;
+	
 char ssid[]     = "hive13int";
 char pass[]     = "hive13int";
 int  status     = WL_IDLE_STATUS;
@@ -28,10 +31,6 @@ unsigned short nco_alloc = 0;
 
 char state_func(void *ptr, unsigned long *time, unsigned long m)
 	{
-	static unsigned char
-		red_state    :1 = 0,
-		green_state  :1 = 0,
-		vacuum_state :1 = 0;
 	static unsigned long vacuum_change_time = 0;
 	unsigned short i;
 
@@ -54,7 +53,7 @@ char state_func(void *ptr, unsigned long *time, unsigned long m)
 			goto schedule_and_run_it;
 
 		red_state   = 0;
-		green_state = !green_state; || vacuum_cmd;
+		green_state = !green_state || vacuum_cmd;
 		*time       = m + 200;
 		goto run_it;
 		}
@@ -92,7 +91,7 @@ void turn_on(void)
 	name = server.arg("name");
 	c_plus_plus_sucks = strdup(name.c_str());
 	for (i = 0; i < nco_alloc; i++)
-		if (name_commanded_on[i])
+		if (names_commanded_on[i])
 			break;
 	if (i == nco_alloc)
 		{
@@ -108,7 +107,7 @@ void turn_on(void)
 			}
 		names_commanded_on = (char **)p;
 		}
-	name_commanded_on[i] = c_plus_plus_sucks;
+	names_commanded_on[i] = c_plus_plus_sucks;
 	server.send(200, "text/plain", "Commanded on by name.");
 	}
 
@@ -125,10 +124,10 @@ void turn_off(void)
 		}
 	name = server.arg("name");
 	for (i = 0; i < nco_alloc; i++)
-		if (name_commanded_on[i] && !strcasecmp(name_commanded_on[i], name.c_str()))
+		if (names_commanded_on[i] && !strcasecmp(names_commanded_on[i], name.c_str()))
 			{
-			free(name_commanded_on[i]);
-			name_commanded_on[i] = NULL;
+			free(names_commanded_on[i]);
+			names_commanded_on[i] = NULL;
 			server.send(200, "text/plain", "Commanded off by name.");
 			return;
 			}
@@ -157,7 +156,7 @@ void loop(void)
 
 void setup(void)
 	{
-	pinMode(ON_BUTTUN_PIN,  INPUT);
+	pinMode(ON_BUTTON_PIN,  INPUT);
 	pinMode(OFF_BUTTON_PIN, INPUT);
 	pinMode(VACUUM_PIN,     OUTPUT);
 	pinMode(RED_LED_PIN,    OUTPUT);
@@ -237,9 +236,9 @@ void handleRoot()
 
 	a = cJSON_CreateNumber(millis());
 	cJSON_AddItemToObject(root, "uptime", a);
-	a = cJSON_CreateBool(vacuum_state);
+	a = cJSON_CreateBool(vacuum_cmd);
 	cJSON_AddItemToObject(root, "commanded_state", a);
-	a = cJSON_CreateBool(vacuum_act);
+	a = cJSON_CreateBool(vacuum_state);
 	cJSON_AddItemToObject(root, "actual_state", a);
 
 	c = cJSON_Print(root);

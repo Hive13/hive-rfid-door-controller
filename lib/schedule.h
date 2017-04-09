@@ -4,6 +4,10 @@
 #define SCHEDULE_DONE 0
 #define SCHEDULE_REDO 1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef char (time_handler)(void *, unsigned long *, unsigned long);
 struct task
 	{
@@ -15,5 +19,9 @@ struct task
 
 void schedule(unsigned long time, time_handler *func, void *ptr);
 void run_schedule(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __SCHEDULE_H */

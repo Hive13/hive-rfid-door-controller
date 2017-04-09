@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #include "schedule.h"
 
 static struct task *task_chain = NULL;
@@ -11,7 +13,7 @@ void schedule(unsigned long time, time_handler *func, void *ptr)
 	t->func = func;
 	t->data = ptr;
 
-	cli();
+	noInterrupts();
 
 	if (!task_chain)
 		{
@@ -26,7 +28,7 @@ void schedule(unsigned long time, time_handler *func, void *ptr)
 		t->prev = walker;
 		}
 	
-	sei();
+	interrupts();
 	}
 
 void run_schedule(void)
