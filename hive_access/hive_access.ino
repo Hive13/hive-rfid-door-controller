@@ -1,7 +1,4 @@
 #include <Wiegand.h>
-#include <Crypto.h>
-#include <SHA512.h>
-#include <CBC.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
@@ -9,22 +6,19 @@
 #include "cJSON.h"
 #include "API.h"
 #include "temp.h"
+#include "schedule.h"
 
-#define SHA512_SZ 64
 #define RANDOM_REG32  ESP8266_DREG(0x20E44)
 
-#define BEEP_PIN D0
-#define D0_PIN D1
-#define D1_PIN D2
+#define BEEP_PIN  D0
+#define D0_PIN    D1
+#define D1_PIN    D2
+#define LIGHT_PIN D0
+#define OPEN_PIN  D0
+#define DOOR_PIN  D4
 
-#define DOOR_PIN D4
-
-#define RESPONSE_BAD_JSON  3
-#define RESPONSE_BAD_HTTP  2
-#define RESPONSE_BAD_CKSUM 1
-#define RESPONSE_GOOD      0
-
-#define DOOR_OPEN_TIME     4000
+/* Number of ms */
+#define DOOR_OPEN_TIME     5000
 
 static WIEGAND wg;
 static char *location = "annex";
@@ -32,58 +26,48 @@ static char *device   = "annex";
 static char *ssid     = "hive13int";
 static char *pass     = "hive13int";
 static char key[] = {65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65};
-static char *hex = "0123456789ABCDEF";
 int status = WL_IDLE_STATUS;
 
-typedef void (time_handler)(void *);
-struct task
+struct door_open
 	{
-	struct task   *prev, *next;
-	unsigned long time;
-	time_handler  *func;
-	void          *data;
+	unsigned int  beep_pin, light_pin, door_pin, open_pin;
+	unsigned char beep_state, cycles;
 	};
 
-struct task *task_chain = NULL;
-
-void schedule(unsigned long time, time_handler *func, void *ptr)
+char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 	{
-	struct task *t = (struct task *)malloc(sizeof(struct task)), *walker = task_chain;
-
-	t->next = NULL;
-	t->time = time;
-	t->func = func;
-	t->data = ptr;
-
-	cli();
-
-	if (!task_chain)
-		{
-		task_chain = t;
-		t->prev = NULL;
-		}
-	else
-		{
-		while (walker->next)
-			walker = walker->next;
-		walker->next = t;
-		t->prev = walker;
-		}
+	unsigned char c;
 	
-	sei();
-	}
+	d->beep_state = !d->beep_state;
+	digitalWrite(BEEP_PIN,  d->beep_state);
+	digitalWrite(LIGHT_PIN, d->beep_state);
 
-void close_door(void *junk)
-	{
-	digitalWrite(DOOR_PIN, HIGH);
+	if (--(d->cycles))
+		{
+		c = digitalRead(d->open_pin);
+		if (c)
+			{
+			*t = m + 100;
+			return SCHEDULE_REDO;
+			}
+		}
+	digitalWrite(d->door_pin, HIGH);
+	return SCHEDULE_DONE;
 	}
 
 void open_door(void)
 	{
-	unsigned long time = millis() + DOOR_OPEN_TIME;
-
-	digitalWrite(DOOR_PIN, LOW);
-	schedule(time, close_door, NULL);
+	static struct door_open d;
+	
+	d.cycles     = (DOOR_OPEN_TIME / 200);
+	d.beep_state = 0;
+	d.beep_pin   = BEEP_PIN;
+	d.light_pin  = LIGHT_PIN;
+	d.door_pin   = DOOR_PIN;
+	d.open_pin   = OPEN_PIN;
+	
+	digitalWrite(d.door_pin, LOW);
+	schedule(0, (time_handler *)close_door, &d);
 	}
 
 void check_badge(unsigned long badge_num)
@@ -105,7 +89,7 @@ void check_badge(unsigned long badge_num)
 		rand[i] = ((r >> (3 - i)) & 0xFF);
 		}
 	
-	out = get_request(badge_num, location, device, key, sizeof(key), rand, sizeof(rand));
+	out = get_request(badge_num, "access", location, device, key, sizeof(key), rand, sizeof(rand));
 
 	Serial.println(out);
 
@@ -137,10 +121,14 @@ void check_badge(unsigned long badge_num)
 
 void setup(void)
 	{
-	digitalWrite(BEEP_PIN, LOW);
-	digitalWrite(DOOR_PIN, HIGH);
-	pinMode(BEEP_PIN, OUTPUT);
-	pinMode(DOOR_PIN, OUTPUT);
+	digitalWrite(BEEP_PIN,  LOW);
+	digitalWrite(DOOR_PIN,  HIGH);
+	digitalWrite(LIGHT_PIN, LOW);
+	
+	pinMode(BEEP_PIN,  OUTPUT);
+	pinMode(DOOR_PIN,  OUTPUT);
+	pinMode(LIGHT_PIN, OUTPUT);
+	pinMode(OPEN_PIN,  INPUT);
 
 	wg.begin(D0_PIN, D0_PIN, D1_PIN, D1_PIN);
 	Serial.begin(115200);
@@ -170,31 +158,9 @@ void loop(void)
 	unsigned long code;
 	unsigned char type;
 	char buf[255];
-	struct task *t = task_chain, *p;
-	unsigned long m = millis();
 
-	while (t)
-		{
-		if (t->time <= m)
-			{
-			t->func(t->data);
-
-			if (t->prev)
-				t->prev->next = t->next;
-			else
-				task_chain = t->next;
-			if (t->next)
-				t->next->prev = t->prev;
-			p = t->next;
-			free(t);
-			t = p;
-			}
-		else
-			t = t->next;
-		}
-
-
-	handle_temperature();
+	run_schedule();
+	
 	if (wg.available())
 		{
 		code = wg.getCode();
@@ -206,5 +172,4 @@ void loop(void)
 		if (type == 26)
 			check_badge(code);
 		}
-	delay(100);
 	}

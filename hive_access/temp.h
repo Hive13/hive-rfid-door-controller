@@ -18,7 +18,7 @@ typedef char (sensor_func)(struct temp_sensor *, unsigned long);
 
 char start_read_temperature(void);
 uint32_t get_temperature(void);
-void handle_temperature();
+char handle_temperature(void *ptr, unsigned long *t, unsigned long m);
 void temperature_check(void);
 void temperature_init(void);
 

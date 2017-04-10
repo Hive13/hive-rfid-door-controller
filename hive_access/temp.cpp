@@ -2,6 +2,7 @@
 #include <OneWire.h>
 
 #include "temp.h"
+#include "schedule.h"
 
 unsigned char main_temperature_addr[] = {0x28, 0xFF, 0xF6, 0x10, 0x82, 0x16, 0x03, 0xC3};
 unsigned char bkup_temperature_addr[] = {0x28, 0xFF, 0x4D, 0xC8, 0x82, 0x16, 0x04, 0x62};
@@ -35,6 +36,7 @@ void temperature_init(void)
 	
 	digitalWrite(TEMPERATURE_POKE_PIN, HIGH);
 	pinMode(TEMPERATURE_POKE_PIN, OUTPUT);
+	schedule(0, handle_temperature, sensors);
 	}
 
 char start_read_temperature(void)
@@ -94,30 +96,31 @@ uint32_t get_temperature(unsigned char *addr)
 	return tempRead + 320;
 	}
 
-void handle_temperature()
+char handle_temperature(void *ptr, unsigned long *t, unsigned long m)
 	{
-	static unsigned long temp_ready_time = 0;
-	unsigned long m = millis();
+	static unsigned char flag = 0;
 	unsigned char i;
 	unsigned long temp;
 
-	if (!temp_ready_time)
+	if (!flag)
 		{
-		if (!start_read_temperature())
-			temp_ready_time = m + TEMPERATURE_READ_TIME;
+		if (start_read_temperature())
+			*t = 0;
 		else
-			temp_ready_time = 0;
-		return;
+			{
+			*t = m + TEMPERATURE_READ_TIME;
+			flag = 1;
+			}
+		return SCHEDULE_REDO;
 		}
-	else if (temp_ready_time <= m)
-		temp_ready_time = 0;
-	else
-		return;
 	
+	flag = 0;
 	for (i = 0; i < sensor_count; i++)
 		{
 		temp = get_temperature(sensors[i].addr);
 		if (sensors[i].func)
 			sensors[i].func(sensors + i, temp);
 		}
+	*t = m + TEMPERATURE_UPDATE_INTERVAL;
+	return SCHEDULE_REDO;
 	}
