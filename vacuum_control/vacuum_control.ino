@@ -49,12 +49,13 @@ char state_func(void *ptr, unsigned long *time, unsigned long m)
 
 	if (i < nco_alloc)
 		{
-		if ((vacuum_change_time + TIMEOUT) < m)
+		if ((vacuum_change_time + TIMEOUT) > m)
 			goto schedule_and_run_it;
 
-		red_state   = 0;
-		green_state = !green_state || vacuum_cmd;
-		*time       = m + 200;
+		vacuum_state = 1;
+		red_state    = 0;
+		green_state  = !green_state || vacuum_cmd;
+		*time        = m + 200;
 		goto run_it;
 		}
 
@@ -62,9 +63,10 @@ char state_func(void *ptr, unsigned long *time, unsigned long m)
 		{
 		vacuum_change_time = m;
 		vacuum_state       = vacuum_cmd;
-		green_state        = vacuum_state;
-		red_state          = !vacuum_state;
 		}
+
+	green_state = vacuum_state;
+	red_state   = !vacuum_state;
 
 schedule_and_run_it:
 	*time = vacuum_change_time + TIMEOUT;
@@ -73,6 +75,25 @@ run_it:
 	digitalWrite(RED_LED_PIN,   red_state);
 	digitalWrite(VACUUM_PIN,    vacuum_state);
 	return SCHEDULE_REDO;
+	}
+
+void tao_s(void)
+	{
+	turn_all_off(&server);
+	}
+
+void turn_all_off(ESP8266WebServer *server)
+	{
+	unsigned short i;
+
+	for (i = 0; i < nco_alloc; i++)
+		if (names_commanded_on[i])
+			{
+			free(names_commanded_on[i]);
+			names_commanded_on[i] = NULL;
+			}
+	if (server)
+		server->send(200, "text/plain", "All commanded on byname revoked.");
 	}
 
 void turn_on(void)
@@ -92,7 +113,16 @@ void turn_on(void)
 	c_plus_plus_sucks = strdup(name.c_str());
 	for (i = 0; i < nco_alloc; i++)
 		if (names_commanded_on[i])
-			break;
+			{
+			if (!strcasecmp(names_commanded_on[i], c_plus_plus_sucks))
+				{
+				server.send(302, "text/plain", "Already commanded on by name.");
+				free(c_plus_plus_sucks);
+				return;
+				}
+			else
+				break;
+			}
 	if (i == nco_alloc)
 		{
 		if (!nco_alloc)
@@ -137,20 +167,74 @@ void turn_off(void)
 void loop(void)
 	{
 	unsigned long m = millis();
+	static unsigned long
+		on_button_time     = 0,
+		off_button_time    = 0,
+		on_button_handled  = 0,
+		off_button_handled = 0;
+	static unsigned char
+		on_button_detect   = 0,
+		off_button_detect  = 0;
+	unsigned char b;
+
 
 	run_schedule();
 
 	server.handleClient();
-	
-	if (digitalRead(ON_BUTTON_PIN) == LOW)
+
+	/*
+		This switches around the logic states.
+		This is by design, so that *_button_detect
+		is 0 if the button is not pressed, and
+		1 if it is.
+	*/
+	b = digitalRead(ON_BUTTON_PIN);
+	if (b == on_button_detect)
 		{
-		vacuum_cmd = 1;
-		Serial.println("On");
+		on_button_detect  = !b;
+		on_button_time    = m;
+		on_button_handled = 0;
 		}
-	else if (digitalRead(OFF_BUTTON_PIN) == LOW)
+	b = digitalRead(OFF_BUTTON_PIN);
+	if (b == off_button_detect)
 		{
+		off_button_detect  = !b;
+		off_button_time    = m;
+		off_button_handled = 0;
+		}
+
+	if (off_button_detect && ((off_button_time + 100) < m) && (off_button_handled < 100))
+		{
+		off_button_handled = 100;
 		vacuum_cmd = 0;
 		Serial.println("Off");
+		}
+	if (off_button_detect && ((off_button_time + 2000) < m) && (off_button_handled < 2000))
+		{
+		off_button_handled = 2000;
+		turn_all_off(NULL);
+		Serial.println("All off");
+		}
+	if (off_button_detect && ((off_button_time + 5000) < m) && (off_button_handled < 5000))
+		{
+		off_button_handled = 5000;
+		locked_out = 1;
+		Serial.println("Locked out");
+		}
+	if (on_button_detect && ((on_button_time + 100) < m) && (on_button_handled < 100))
+		{
+		on_button_handled = 100;
+		if (!locked_out)
+			{
+			vacuum_cmd = 1;
+			Serial.println("On");
+			}
+		}
+	if (on_button_detect && ((on_button_time + 5000) < m) && (on_button_handled < 5000))
+		{
+		on_button_handled = 5000;
+		locked_out = 0;
+		Serial.println("No longer locked out");
 		}
 	}
 
@@ -166,7 +250,7 @@ void setup(void)
 	digitalWrite(GREEN_LED_PIN, HIGH);
 	digitalWrite(RED_LED_PIN,   HIGH);
 
-	Serial.begin(115200);
+	Serial.begin(57600);
 	delay(1);
 
 	Serial.print("Attempting to connect to WPA SSID: ");
@@ -185,6 +269,7 @@ void setup(void)
 	server.on("/", handleRoot);
 	server.on("/on", turn_on);
 	server.on("/off", turn_off);
+	server.on("/all_off", tao_s);
 	server.onNotFound(handleNotFound);
 	server.begin();
 	Serial.println("HTTP server started");
@@ -240,6 +325,8 @@ void handleRoot()
 	cJSON_AddItemToObject(root, "commanded_state", a);
 	a = cJSON_CreateBool(vacuum_state);
 	cJSON_AddItemToObject(root, "actual_state", a);
+	a = cJSON_CreateBool(locked_out);
+	cJSON_AddItemToObject(root, "locked_out", a);
 
 	c = cJSON_Print(root);
 	server.send(200, "text/json", c);
