@@ -10,11 +10,11 @@
 
 #define RANDOM_REG32  ESP8266_DREG(0x20E44)
 
-#define BEEP_PIN  D0
+#define BEEP_PIN  D8
 #define D0_PIN    D1
 #define D1_PIN    D2
 #define LIGHT_PIN D0
-#define OPEN_PIN  D0
+#define OPEN_PIN  D3
 #define DOOR_PIN  D4
 
 /* Number of ms */
@@ -39,19 +39,21 @@ char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 	unsigned char c;
 	
 	d->beep_state = !d->beep_state;
-	digitalWrite(BEEP_PIN,  d->beep_state);
-	digitalWrite(LIGHT_PIN, d->beep_state);
+	digitalWrite(d->beep_pin,  d->beep_state);
+	digitalWrite(d->light_pin, d->beep_state);
 
 	if (--(d->cycles))
 		{
 		c = digitalRead(d->open_pin);
-		if (c)
+		if (!c)
 			{
 			*t = m + 100;
 			return SCHEDULE_REDO;
 			}
 		}
-	digitalWrite(d->door_pin, HIGH);
+	digitalWrite(d->door_pin,  HIGH);
+	digitalWrite(d->beep_pin,  LOW);
+	digitalWrite(d->light_pin, LOW);
 	return SCHEDULE_DONE;
 	}
 
@@ -59,7 +61,7 @@ void open_door(void)
 	{
 	static struct door_open d;
 	
-	d.cycles     = (DOOR_OPEN_TIME / 200);
+	d.cycles     = (DOOR_OPEN_TIME / 100);
 	d.beep_state = 0;
 	d.beep_pin   = BEEP_PIN;
 	d.light_pin  = LIGHT_PIN;
@@ -146,9 +148,12 @@ void setup(void)
 	
 	temperature_init();
 
-	delay(500);
 	digitalWrite(BEEP_PIN, HIGH);
+	delay(200);
+	digitalWrite(BEEP_PIN, LOW);
 	delay(100);
+	digitalWrite(BEEP_PIN, HIGH);
+	delay(200);
 	digitalWrite(BEEP_PIN, LOW);
 	Serial.println("Ready to rumble!");
 	}
