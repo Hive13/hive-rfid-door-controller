@@ -2,7 +2,9 @@
 #include <OneWire.h>
 
 #include "temp.h"
+#include "log.h"
 #include "schedule.h"
+#include "http.h"
 
 unsigned char main_temperature_addr[] = {0x28, 0xFF, 0xF6, 0x10, 0x82, 0x16, 0x03, 0xC3};
 unsigned char bkup_temperature_addr[] = {0x28, 0xFF, 0x4D, 0xC8, 0x82, 0x16, 0x04, 0x62};
@@ -13,10 +15,14 @@ static OneWire ds(TEMPERATURE_PIN);
 
 char main_temperature_sensor(struct temp_sensor *me, unsigned long temp)
 	{
-	if (temp > 750)
+	char buf[256];
+
+	log_msg("Temperature: %hu.%hu", temp / 10, temp % 10);
+	log_temp(temp);
+	/*if (temp > 750)
 		digitalWrite(TEMPERATURE_POKE_PIN, LOW);
 	else
-		digitalWrite(TEMPERATURE_POKE_PIN, HIGH);
+		digitalWrite(TEMPERATURE_POKE_PIN, HIGH);*/
 	return 0;
 	}
 
@@ -44,10 +50,10 @@ char start_read_temperature(void)
 	unsigned char i;
 	unsigned char look_addr[8];
 	
-	sensor_count = 0;
-	
 	while (ds.search(look_addr))
 		{
+		/*log_msg("Found %02X %02X %02X %02X %02X %02X %02X %02X",
+			look_addr[0], look_addr[1], look_addr[2], look_addr[3], look_addr[4], look_addr[5], look_addr[6], look_addr[7]);*/
 		if (OneWire::crc8(look_addr, 7) != look_addr[7])
 			{
 			Serial.println("CRC is not valid!");
@@ -121,6 +127,6 @@ char handle_temperature(void *ptr, unsigned long *t, unsigned long m)
 		if (sensors[i].func)
 			sensors[i].func(sensors + i, temp);
 		}
-	*t = m + TEMPERATURE_UPDATE_INTERVAL;
+	*t = m + TEMPERATURE_UPDATE_INTERVAL - TEMPERATURE_READ_TIME;
 	return SCHEDULE_REDO;
 	}

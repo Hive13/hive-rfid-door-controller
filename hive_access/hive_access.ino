@@ -7,8 +7,8 @@
 #include "API.h"
 #include "temp.h"
 #include "schedule.h"
-
-#define RANDOM_REG32  ESP8266_DREG(0x20E44)
+#include "log.h"
+#include "http.h"
 
 #define BEEP_PIN  D8
 #define D0_PIN    D1
@@ -20,18 +20,18 @@
 /* Number of ms */
 #define DOOR_OPEN_TIME     5000
 
+#define OPEN_IDLE        0
+#define OPEN_IN_PROGRESS 1
+
 static WIEGAND wg;
-static char *location = "annex";
-static char *device   = "annex";
-static char *ssid     = "hive13int";
-static char *pass     = "hive13int";
-static char key[] = {65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65};
-int status = WL_IDLE_STATUS;
+static char *ssid = "hive13int";
+static char *pass = "hive13int";
+int status        = WL_IDLE_STATUS;
 
 struct door_open
 	{
 	unsigned int  beep_pin, light_pin, door_pin, open_pin;
-	unsigned char beep_state, cycles;
+	unsigned char beep_state, cycles, status;
 	};
 
 char close_door(struct door_open *d, unsigned long *t, unsigned long m)
@@ -54,78 +54,40 @@ char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 	digitalWrite(d->door_pin,  HIGH);
 	digitalWrite(d->beep_pin,  LOW);
 	digitalWrite(d->light_pin, LOW);
+	d->status = OPEN_IDLE;
 	return SCHEDULE_DONE;
 	}
 
 void open_door(void)
 	{
-	static struct door_open d;
+	static struct door_open d =
+		{
+		beep_pin:   BEEP_PIN,
+		light_pin:  LIGHT_PIN,
+		door_pin:   DOOR_PIN,
+		open_pin:   OPEN_PIN,
+		beep_state: 0,
+		cycles:     0,
+		status:     OPEN_IDLE,
+		};
 	
 	d.cycles     = (DOOR_OPEN_TIME / 100);
 	d.beep_state = 0;
-	d.beep_pin   = BEEP_PIN;
-	d.light_pin  = LIGHT_PIN;
-	d.door_pin   = DOOR_PIN;
-	d.open_pin   = OPEN_PIN;
 	
-	digitalWrite(d.door_pin, LOW);
-	schedule(0, (time_handler *)close_door, &d);
-	}
-
-void check_badge(unsigned long badge_num)
-	{
-	struct cJSON *json, *result;
-	unsigned char i;
-	unsigned long r;
-	char *out;
-	char rand[16];
-	HTTPClient http;
-	int code;
-	String body;
-	const char host[] = "http://intweb.at.hive13.org/api/access";
-
-	for (i = 0; i < sizeof(rand); i++)
+	if (d.status == OPEN_IDLE)
 		{
-		if (!(i % 4))
-			r = RANDOM_REG32;
-		rand[i] = ((r >> (3 - i)) & 0xFF);
-		}
-	
-	out = get_request(badge_num, "access", location, device, key, sizeof(key), rand, sizeof(rand));
-
-	Serial.println(out);
-
-	http.begin(host);
-	http.addHeader("Content-Type", "application/json");
-
-	code = http.POST((unsigned char *)out, strlen(out));
-	free(out);
-
-	if (code != 200)
-		return /*(RESPONSE_BAD_HTTP | ((code << 8)) & 0x7F00)*/;
-
-	body = http.getString();
-	i = parse_response((char *)body.c_str(), &result, key, sizeof(key), rand, sizeof(rand));
-
-	if (i == RESPONSE_GOOD)
-		{
-		json = cJSON_GetObjectItem(result, "access");
-		if (json && json->type == cJSON_True)
-			open_door();
-		cJSON_Delete(result);
-		}
-	else
-		{
-		Serial.print("Error: ");
-		Serial.println(i, DEC);
+		d.status = OPEN_IN_PROGRESS;
+		digitalWrite(d.door_pin, LOW);
+		schedule(millis() + 100, (time_handler *)close_door, &d);
 		}
 	}
 
 void setup(void)
 	{
+	unsigned char i = LOW;
 	digitalWrite(BEEP_PIN,  LOW);
 	digitalWrite(DOOR_PIN,  HIGH);
-	digitalWrite(LIGHT_PIN, LOW);
+	digitalWrite(LIGHT_PIN, i);
 	
 	pinMode(BEEP_PIN,  OUTPUT);
 	pinMode(DOOR_PIN,  OUTPUT);
@@ -133,7 +95,7 @@ void setup(void)
 	pinMode(OPEN_PIN,  INPUT);
 
 	wg.begin(D0_PIN, D0_PIN, D1_PIN, D1_PIN);
-	Serial.begin(115200);
+	log_begin(115200);
 
 	Serial.print("Connecting to SSID ");
 	Serial.println(ssid);
@@ -141,8 +103,10 @@ void setup(void)
 	status = WiFi.begin(ssid, pass);
 	while (WiFi.status() != WL_CONNECTED)
 		{
+		i = !i;
+		digitalWrite(LIGHT_PIN, i);
 		Serial.print(".");
-		delay(500);
+		delay(250);
 		}
 	Serial.print("connected!");
 	
@@ -175,6 +139,6 @@ void loop(void)
 
 		Serial.println(buf);
 		if (type == 26)
-			check_badge(code);
+			check_badge(code, open_door);
 		}
 	}
