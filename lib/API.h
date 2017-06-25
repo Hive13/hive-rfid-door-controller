@@ -17,6 +17,7 @@ unsigned char val(char *i);
 unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned char key_len, char *rv, unsigned char rv_len);
 void get_hash(struct cJSON *data, char *sha_buf, char *key, unsigned char key_len);
 char *get_request(unsigned long badge_num, char *operation, char *location, char *device, char *key, unsigned char key_len, char *rv, unsigned char rv_len);
+char *log_data(struct cJSON *l_data, char *device, char *key, unsigned char key_len, char *rv, unsigned char rv_len);
 void print_hex(char *str, char *src, unsigned char sz);
 
 #ifdef __cplusplus
