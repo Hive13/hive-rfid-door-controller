@@ -94,7 +94,7 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 	else
 		{
 		log_msg("Error: %i", i);
-		beep_it(&network_error);
+		beep_it(&packet_error);
 		}
 	}
 

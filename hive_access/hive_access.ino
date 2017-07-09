@@ -24,6 +24,16 @@ struct beep_pattern start_of_day =
 	.options     = RED_WITH_BEEP,
 	};
 
+char log_wifi_stuff(void *ptr, unsigned long *t, unsigned long now)
+	{
+	int s = WiFi.status();
+
+	log_msg("Wifi status: %i", s);
+
+	*t = now + 1000;
+	return SCHEDULE_REDO;
+	}
+
 void setup(void)
 	{
 	unsigned char i = LOW;
@@ -45,6 +55,7 @@ void setup(void)
 	log_progress_end("connected!");
 	
 	temperature_init();
+	schedule(0, log_wifi_stuff, NULL);
 
 	beep_it(&start_of_day);
 	log_msg("Ready to rumble!");
