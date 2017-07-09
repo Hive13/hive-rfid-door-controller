@@ -34,15 +34,7 @@ struct beep_pattern
 	unsigned char options;
 	};
 
-struct door_open
-	{
-	unsigned int  beep_pin, light_pin, door_pin, open_pin;
-	unsigned char beep_state, cycles, status;
-	};
-
 void beep_it(struct beep_pattern *pattern);
-char led_flicker(void *data, unsigned long *time, unsigned long now);
-char close_door(struct door_open *d, unsigned long *t, unsigned long m);
 void open_door(void);
 void ui_init(void);
 

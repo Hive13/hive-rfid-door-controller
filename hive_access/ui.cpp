@@ -4,6 +4,30 @@
 #include "log.h"
 #include "schedule.h"
 
+struct door_open
+	{
+	unsigned int  beep_pin, light_pin, door_pin, open_pin;
+	unsigned char beep_state, cycles, status;
+	};
+
+static char led_flicker(void *data, unsigned long *time, unsigned long now)
+	{
+	static unsigned char c = 0;
+
+	if (!c)
+		{
+		*time = now + 50;
+		LIGHT_GREEN();
+		}
+	else
+		{
+		*time = now + 2500;
+		LIGHT_RED();
+		}
+	c = !c;
+	return SCHEDULE_REDO;
+	}
+
 void ui_init(void)
 	{
 	digitalWrite(BEEP_PIN,  LOW);
@@ -14,6 +38,8 @@ void ui_init(void)
 	pinMode(DOOR_PIN,  OUTPUT);
 	pinMode(LIGHT_PIN, OUTPUT);
 	pinMode(OPEN_PIN,  INPUT);
+
+	schedule(0, (time_handler *)led_flicker, NULL);
 	}
 
 void beep_it(struct beep_pattern *pattern)
@@ -47,25 +73,7 @@ void beep_it(struct beep_pattern *pattern)
 	LIGHT_RED();
 	}
 
-char led_flicker(void *data, unsigned long *time, unsigned long now)
-	{
-	static unsigned char c = 0;
-
-	if (!c)
-		{
-		*time = now + 50;
-		LIGHT_GREEN();
-		}
-	else
-		{
-		*time = now + 2500;
-		LIGHT_RED();
-		}
-	c = !c;
-	return SCHEDULE_REDO;
-	}
-
-char close_door(struct door_open *d, unsigned long *t, unsigned long m)
+static char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 	{
 	unsigned char c;
 	
