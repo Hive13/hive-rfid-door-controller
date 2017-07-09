@@ -9,8 +9,31 @@
 #include "schedule.h"
 #include "log.h"
 #include "http.h"
+#include "ui.h"
 
 #define RANDOM_REG32  ESP8266_DREG(0x20E44)
+
+struct beep_pattern invalid_card =
+	{
+	.beep_ms     = 1000,
+	.silence_ms  = 0,
+	.cycle_count = 1,
+	.options     = RED_ALWAYS,
+	};
+struct beep_pattern network_error =
+	{
+	.beep_ms     = 250,
+	.silence_ms  = 250,
+	.cycle_count = 4,
+	.options     = RED_ALWAYS,
+	};
+struct beep_pattern packet_error =
+	{
+	.beep_ms     = 250,
+	.silence_ms  = 250,
+	.cycle_count = 8,
+	.options     = RED_ALWAYS,
+	};
 
 static char *location    = "annex";
 static char *device      = "annex";
@@ -37,7 +60,7 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 	
 	out = get_request(badge_num, "access", location, device, key, sizeof(key), rand, sizeof(rand));
 
-	Serial.println(out);
+	log_msg("Request response: %s", out);
 
 	http.begin(host);
 	http.addHeader("Content-Type", "application/json");
@@ -48,6 +71,7 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 	if (code != 200)
 		{
 		log_msg("Got response back: %i", code);
+		beep_it(&network_error);
 		return /*(RESPONSE_BAD_HTTP | ((code << 8)) & 0x7F00)*/;
 		}
 
@@ -56,16 +80,22 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 
 	if (i == RESPONSE_GOOD)
 		{
-		Serial.println("Good response!");
+		log_msg("Good response!");
 		json = cJSON_GetObjectItem(result, "access");
 		if (json && json->type == cJSON_True)
 			success();
 		else
-			Serial.println("Access denied.");
+			{
+			log_msg("Access denied.");
+			beep_it(&invalid_card);
+			}
 		cJSON_Delete(result);
 		}
 	else
+		{
 		log_msg("Error: %i", i);
+		beep_it(&network_error);
+		}
 	}
 
 void log_temp(unsigned long temp)
