@@ -56,12 +56,12 @@ char start_read_temperature(void)
 			look_addr[0], look_addr[1], look_addr[2], look_addr[3], look_addr[4], look_addr[5], look_addr[6], look_addr[7]);*/
 		if (OneWire::crc8(look_addr, 7) != look_addr[7])
 			{
-			Serial.println("CRC is not valid!");
+			log_msg("CRC is not valid!");
 			continue;
 			}
 		if (look_addr[0] != 0x10 && look_addr[0] != 0x28)
 			{
-			Serial.println("Device not a DS.");
+			log_msg("Device not a DS.");
 			continue;
 			}
 		ds.reset();
