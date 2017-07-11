@@ -53,6 +53,8 @@ void setup(void)
 		delay(250);
 		}
 	log_progress_end("connected!");
+	WiFi.setAutoConnect(1);
+	WiFi.setAutoReconnect(1);
 	
 	temperature_init();
 	schedule(0, log_wifi_stuff, NULL);
