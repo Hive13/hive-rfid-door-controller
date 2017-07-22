@@ -10,6 +10,7 @@
 #include "log.h"
 #include "http.h"
 #include "ui.h"
+#include "wifi.h"
 
 #define RANDOM_REG32  ESP8266_DREG(0x20E44)
 
@@ -72,6 +73,7 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 		{
 		log_msg("Got response back: %i", code);
 		beep_it(&network_error);
+		wifi_error();
 		return /*(RESPONSE_BAD_HTTP | ((code << 8)) & 0x7F00)*/;
 		}
 
