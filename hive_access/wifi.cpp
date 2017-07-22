@@ -16,7 +16,7 @@ char log_wifi_stuff(void *ptr, unsigned long *t, unsigned long now)
 
 	log_msg("Wifi status: %i", s);
 
-	*t = now + 1000;
+	*t = now + 5000;
 	return SCHEDULE_REDO;
 	}
 
