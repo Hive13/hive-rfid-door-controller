@@ -6,6 +6,9 @@ static struct task *task_chain = NULL;
 
 void schedule(unsigned long time, time_handler *func, void *ptr)
 	{
+#ifdef ARDUINO_AVR_MEGA2560
+	unsigned int oldREG;
+#endif
 	struct task *t = (struct task *)malloc(sizeof(struct task)), *walker = task_chain;
 
 	t->next = NULL;
@@ -13,7 +16,13 @@ void schedule(unsigned long time, time_handler *func, void *ptr)
 	t->func = func;
 	t->data = ptr;
 
+#ifdef ARDUINO_AVR_MEGA2560
+	oldREG = SREG;
+	cli();
+#else
 	noInterrupts();
+#endif
+
 
 	if (!task_chain)
 		{
@@ -28,7 +37,11 @@ void schedule(unsigned long time, time_handler *func, void *ptr)
 		t->prev = walker;
 		}
 	
+#ifdef ARDUINO_AVR_MEGA2560
+	SREG = oldREG;
+#else
 	interrupts();
+#endif
 	}
 
 void run_schedule(void)

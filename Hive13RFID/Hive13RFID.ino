@@ -6,11 +6,16 @@
 #include <Wiegand.h>
 #include <SPI.h>
 #include <Ethernet.h>
+#include <EthernetUdp.h>
 
 #include "cJSON.h"
 #include "API.h"
+#include "ui.h"
+#include "schedule.h"
+#include "log.h"
 
 #define BODY_SZ 1024
+#define DOORBELL_PIN 18
 
 #define NETWORK_TIMEOUT 5000
 #define NETWORK_DELAY   25
@@ -41,7 +46,7 @@ char check_badge(unsigned long badge)
 	memcpy(rv + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
 	scan_count++;
 
-	out = get_request(badge, location, location, key, sizeof(key), rv, sizeof(rv));
+	out = get_request(badge, "access", location, location, key, sizeof(key), rv, sizeof(rv));
 	l = strlen(out);
 	Serial.print("Sending ");
 	Serial.println(out);
@@ -103,62 +108,52 @@ char check_badge(unsigned long badge)
 	return RESPONSE_GOOD;
 	}
 
-void open_door(void)
-	{
-	unsigned char count = 0;
-	int sensorValue;
-
-	// switch the relay to open the door.
-	digitalWrite(6, LOW);
-	delay(350);
-	// beep buzzer for up to 50 cycles or until the magnetic switch/door has been opened.
-	digitalWrite(13, LOW);
-	digitalWrite(12, LOW);
-	while (count < 50)
-		{
-		sensorValue = analogRead(A0);
-		digitalWrite(13, HIGH);
-		digitalWrite(12, HIGH);
-		delay(100);
-		digitalWrite(13, LOW);
-		digitalWrite(12, LOW);
-		delay(100);
-		if(sensorValue < 670)
-			break;
-		count++;
-		}
-
-	// turn off buzzer now otherwise it will take a second or two for the loop to complete and turn it off.
-	digitalWrite(13, HIGH);
-	digitalWrite(12, HIGH);
-	}
-
-
 WIEGAND wg;
-byte mac[]     = { 0x48, 0x49, 0x56, 0x45, 0x31, 0x33};
+byte mac[]     = {0x48, 0x49, 0x56, 0x45, 0x31, 0x33};
 byte ip[]      = {172, 16, 3, 245};
 byte gateway[] = {172, 16, 2, 1};
 byte subnet[]  = {255, 255, 254, 0};
 byte dns_d[]   = {172, 16, 2, 1};
 EthernetClient client;
+EthernetUDP    udp;
 
 // Cache of badge numbers that have succesfully opened the door.
 unsigned long usersCache[100];
 
+struct beep_pattern start_of_day =
+	{
+	.beep_ms     = 200,
+	.silence_ms  = 100,
+	.cycle_count = 2,
+	.options     = RED_WITH_BEEP,
+	};
+
+static char doorbell(void *data, unsigned long *time, unsigned long now)
+	{
+	//static IPAddress mc_ip(172, 16, 3, 255);
+	static IPAddress mc_ip(239, 72, 49, 51);
+	udp.beginPacket(mc_ip, 12595);
+	udp.write("doorbell");
+	udp.endPacket();
+	return SCHEDULE_DONE;
+	}
+
+void doorbell_isr(void)
+	{
+	schedule(0, doorbell, NULL);
+	}
+
 void setup()
 	{
-  pinMode(13, OUTPUT);
-  pinMode(12, OUTPUT);
-  pinMode(6, OUTPUT);    
+	ui_init();
+	log_begin(115200);
 
-	digitalWrite(13, HIGH);
-	digitalWrite(12, HIGH);
-	digitalWrite(6,  HIGH);
-
-	Serial.begin(57600);
+	pinMode(DOORBELL_PIN, INPUT_PULLUP);
+	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), doorbell_isr, FALLING);
 
   Serial.println("Initializing Ethernet Controller.");
 	Ethernet.begin(mac, ip, dns_d, gateway, subnet);
+	udp.begin(12595);
 
   // Initialize Wiegand Interface
   wg.begin();
@@ -166,18 +161,7 @@ void setup()
   // initialize the usersCache array as all 0.
 	memset(usersCache, 0, sizeof(usersCache));
 	
-	/* Beep twice for start of day */
-	digitalWrite(13, LOW);
-	digitalWrite(12, LOW);
-	delay(100);
-	digitalWrite(13, HIGH);
-	digitalWrite(12, HIGH);
-	delay(50);
-	digitalWrite(13, LOW);
-	digitalWrite(12, LOW);
-	delay(100);
-	digitalWrite(13, HIGH);
-	digitalWrite(12, HIGH);
+	beep_it(&start_of_day);
 	}
 
 void loop()
@@ -187,11 +171,8 @@ void loop()
 	unsigned long time = 0;
 	boolean cached = false;
 	unsigned char i;
-  
-  digitalWrite(6, HIGH);
-  // Turn off buzzer in case it has been left on
-  digitalWrite(13, HIGH);
-  digitalWrite(12, HIGH);
+
+	run_schedule();
 
 	if (!wg.available())
 		return;
