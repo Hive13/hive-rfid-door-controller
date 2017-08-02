@@ -15,7 +15,6 @@
 #include "temp.h"
 #include "vend.h"
 #include "log.h"
-#include "sha256.h"
 #include "API.h"
 
 static WIEGAND wg;
@@ -43,7 +42,7 @@ void setup()
 	sold_out = PINK;
 	sei();
 
-	log_begin();
+	log_begin(115200);
 	log_msg("Hive13 Vending Arduino Shield v.04");
 	leds_init();
 	vend_init();
