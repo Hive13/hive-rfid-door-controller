@@ -114,11 +114,11 @@ byte ip[]      = {172, 16, 3, 245};
 byte gateway[] = {172, 16, 2, 1};
 byte subnet[]  = {255, 255, 254, 0};
 byte dns_d[]   = {172, 16, 2, 1};
-EthernetClient client;
-EthernetUDP    udp;
 
-// Cache of badge numbers that have succesfully opened the door.
-unsigned long usersCache[100];
+EthernetClient   client;
+EthernetUDP      udp;
+static IPAddress mc_ip(239, 72, 49, 51);
+unsigned long    usersCache[100];
 
 struct beep_pattern start_of_day =
 	{
@@ -130,8 +130,6 @@ struct beep_pattern start_of_day =
 
 static char doorbell(void *data, unsigned long *time, unsigned long now)
 	{
-	//static IPAddress mc_ip(172, 16, 3, 255);
-	static IPAddress mc_ip(239, 72, 49, 51);
 	udp.beginPacket(mc_ip, 12595);
 	udp.write("doorbell");
 	udp.endPacket();
@@ -153,7 +151,7 @@ void setup()
 
   Serial.println("Initializing Ethernet Controller.");
 	Ethernet.begin(mac, ip, dns_d, gateway, subnet);
-	udp.begin(12595);
+	udp.beginMulticast(mc_ip, 12595);
 
   // Initialize Wiegand Interface
   wg.begin();
@@ -167,12 +165,21 @@ void setup()
 void loop()
 	{
 	char badge_code;
+	char buffer[UDP_TX_PACKET_MAX_SIZE];
 	unsigned long badgeID = 0;
 	unsigned long time = 0;
 	boolean cached = false;
 	unsigned char i;
+	int sz;
 
 	run_schedule();
+
+	sz = udp.parsePacket();
+	if (sz)
+		{
+		log_msg("Packet!");
+		udp.read(buffer, UDP_TX_PACKET_MAX_SIZE);
+		}
 
 	if (!wg.available())
 		return;
