@@ -16,6 +16,7 @@
 #include "vend.h"
 #include "log.h"
 #include "sha256.h"
+#include "API.h"
 
 static WIEGAND wg;
 static byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
@@ -63,6 +64,7 @@ void loop()
 	unsigned long code;
 	int err;
 
+	Ethernet.maintain();
 	handle_temperature();
 	if (sold_out_changed && sold_out_changed_at < millis() - 250)
 		{
@@ -76,7 +78,7 @@ void loop()
 		code = wg.getCode();
 		log_msg("Scanned badge %lu/0x%lX, type W%d", code, code, wg.getWiegandType());
 
-		if (can_vend(code))
+		if (can_vend(code) == RESPONSE_GOOD)
 			do_vend();
 		else
 			log_msg("Didn't receive the OK to vend...");

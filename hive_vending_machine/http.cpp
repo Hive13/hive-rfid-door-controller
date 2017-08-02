@@ -61,6 +61,10 @@ signed int http_get_json(char *host, char *path, char *req_body, char **resp)
 	resp_body[l++] = 0;
 	hc.stop();
 
+	Serial.print("L: ");
+	Serial.println(l, DEC);
+	Serial.println(resp_body);
+
 	if (resp)
 		*resp = resp_body;
 	else

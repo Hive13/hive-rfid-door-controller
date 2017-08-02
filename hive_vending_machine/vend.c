@@ -236,11 +236,13 @@ signed char can_vend(unsigned long badge)
 	rc = parse_response(body, &resp, key, sizeof(key), rv, sizeof(rv));
 	free(body);
 
+	log_msg("rc: %hhd", rc);
 	if (rc != RESPONSE_GOOD)
 		return rc;
 
 	if (!(cs = cJSON_GetObjectItem(resp, "vend")) || cs->type != cJSON_True)
 		{
+		log_msg("Didn't get a vend response back.");
 		cJSON_Delete(resp);
 		return RESPONSE_ACCESS_DENIED;
 		}

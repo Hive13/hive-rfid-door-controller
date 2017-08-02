@@ -15,6 +15,7 @@ static uint32_t temp = 0;
 
 void temperature_init(void)
 	{
+	log_msg("Initializing temperature controller.");
 	pinMode(TEMPERATURE_POWER_PIN, OUTPUT);
 	pinMode(COMPRESSOR_RELAY, OUTPUT);
 	digitalWrite(COMPRESSOR_RELAY, LOW);
