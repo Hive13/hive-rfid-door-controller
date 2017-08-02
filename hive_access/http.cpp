@@ -133,6 +133,7 @@ void log_temp(unsigned long temp)
 	if (code != 200)
 		{
 		log_msg("Got response back: %i", code);
+		wifi_error();
 		return;
 		}
 

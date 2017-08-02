@@ -16,24 +16,14 @@ char log_wifi_stuff(void *ptr, unsigned long *t, unsigned long now)
 
 	log_msg("Wifi status: %i", s);
 
-	*t = now + 5000;
+	*t = now + 10000;
 	return SCHEDULE_REDO;
 	}
 
 void wifi_error(void)
 	{
-	unsigned char i = 0;
-	WiFi.disconnect();
-	log_progress_start("Wifi Disconnect %i - reconnecting", WiFi.status());
-
-	while (WiFi.status() != WL_CONNECTED)
-		{
-		i = !i;
-		digitalWrite(LIGHT_PIN, i);
-		log_progress(".");
-		delay(250);
-		}
-	log_progress_end("reconnected.");
+	WiFi.disconnect(1);
+	wifi_init();
 	}
 
 void wifi_init(void)
@@ -43,11 +33,12 @@ void wifi_init(void)
 
 	log_progress_start("Connecting to SSID %s", ssid);
 	status = WiFi.begin(ssid, pass);
-	while (WiFi.status() != WL_CONNECTED)
+	log_progress("[%i]", status);
+	while ((status = WiFi.status()) != WL_CONNECTED)
 		{
 		i = !i;
 		digitalWrite(LIGHT_PIN, i);
-		log_progress(".");
+		log_progress("{%i}", status);
 		delay(250);
 		}
 	log_progress_end("connected!");
