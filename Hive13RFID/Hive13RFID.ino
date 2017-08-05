@@ -1,10 +1,7 @@
 #include <b64.h>
 #include <HttpClient.h>
 
-#include <SHA512.h>
-
 #include <Wiegand.h>
-#include <SPI.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
 
@@ -13,22 +10,15 @@
 #include "ui.h"
 #include "schedule.h"
 #include "log.h"
+#include "pins.h"
 
 #define BODY_SZ 1024
-#define DOORBELL_PIN 18
 
 #define NETWORK_TIMEOUT 5000
 #define NETWORK_DELAY   25
 
 char *location   = "main_door";
 char key[]       = {'Y', 'o', 'u', ' ', 'l', 'o', 's', 't', ' ', 't', 'h', 'e', 'G', 'a', 'm', 'e'};
-
-// I'm using the Wiegand library to make reading the files easier. 
-// https://github.com/monkeyboard/Wiegand-Protocol-Library-for-Arduino.git
-// Pins:  6  = Relay for the door
-//        13 = Red/Green light on RFID Reader.  High == Red, Low == Green.
-//        12 = Buzzer attached to RFID Reader.  High == Off, Low == On.
-//        A0 = Magnetic Switch attached to top of door.  
 
 char check_badge(unsigned long badge)
 	{
@@ -120,6 +110,8 @@ EthernetUDP      udp;
 static IPAddress mc_ip(239, 72, 49, 51);
 unsigned long    usersCache[100];
 
+static volatile unsigned char doorbell_data = 5;
+
 struct beep_pattern start_of_day =
 	{
 	.beep_ms     = 200,
@@ -128,17 +120,39 @@ struct beep_pattern start_of_day =
 	.options     = RED_WITH_BEEP,
 	};
 
-static char doorbell(void *data, unsigned long *time, unsigned long now)
+/*
+	Buzz for 1000ms, sending out a packet every 250ms.
+	Wait an additional 4000ms before accepting the next
+	button press.
+*/
+static char doorbell(char *data, unsigned long *time, unsigned long now)
 	{
-	udp.beginPacket(mc_ip, 12595);
-	udp.write("doorbell");
-	udp.endPacket();
+	if (++(*data) < 4)
+		{
+		udp.beginPacket(mc_ip, 12595);
+		udp.write("doorbell");
+		udp.endPacket();
+		*time = now + 250;
+		return SCHEDULE_REDO;
+		}
+	digitalWrite(BUZZER_PIN, LOW);
+	*time = now + 4000;
+	if ((*data) == 4)
+		return SCHEDULE_REDO;
 	return SCHEDULE_DONE;
 	}
 
-void doorbell_isr(void)
+/*
+	This function must work inside or outside of an ISR.
+*/
+void ring_doorbell(void)
 	{
-	schedule(0, doorbell, NULL);
+	if (doorbell_data == 5)
+		{
+		doorbell_data = 0;
+		digitalWrite(BUZZER_PIN, HIGH);
+		schedule(0, doorbell, &doorbell_data);
+		}
 	}
 
 void setup()
@@ -146,8 +160,10 @@ void setup()
 	ui_init();
 	log_begin(115200);
 
+	digitalWrite(BUZZER_PIN, LOW);
 	pinMode(DOORBELL_PIN, INPUT_PULLUP);
-	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), doorbell_isr, FALLING);
+	pinMode(BUZZER_PIN,   OUTPUT);
+	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), ring_doorbell, FALLING);
 
   Serial.println("Initializing Ethernet Controller.");
 	Ethernet.begin(mac, ip, dns_d, gateway, subnet);
@@ -167,6 +183,7 @@ void loop()
 	char badge_code;
 	char buffer[UDP_TX_PACKET_MAX_SIZE];
 	unsigned long badgeID = 0;
+	unsigned char type;
 	unsigned long time = 0;
 	boolean cached = false;
 	unsigned char i;
@@ -185,30 +202,27 @@ void loop()
 		return;
 
 	badgeID = wg.getCode();
+	type    = wg.getWiegandType();
 
-	// Sending Debug info to USB...
-	Serial.print("Wiegand HEX = ");
-	Serial.print(badgeID, HEX);
-	Serial.print(", DECIMAL = ");
-	Serial.print(badgeID);
-	Serial.print(", Type W");
-	Serial.println(wg.getWiegandType());
+	log_msg("Badge scan: %lu/0x%lX, type W%hd", badgeID, badgeID, type);
+
+	if (type != 26)
+		return;
 
 	// Check to see if the user has been cached
 	for (i = 0; i < (sizeof(usersCache) / sizeof(usersCache[0])); i++)
 		{
 		if(usersCache[i] == badgeID && usersCache[i] > 0)
 			{
-			// If it has been cached open the door.
-			Serial.println("Verified via cache ok to open door...");
+			log_msg("Verified via cache ok to open door...");
 			cached = true;
 			open_door();
+			break;
 			}
 		}
 
 	badge_code = check_badge(badgeID);
-	Serial.print("Badge code: ");
-	Serial.println(badge_code, DEC);
+	log_msg("Response from check_badge(): %d", badge_code);
 
 	if (badge_code == RESPONSE_GOOD)
 		{
