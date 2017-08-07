@@ -127,7 +127,7 @@ struct beep_pattern start_of_day =
 */
 static char doorbell(char *data, unsigned long *time, unsigned long now)
 	{
-	if (++(*data) < 4)
+	if (((++(*data)) & 0x0F) < 4)
 		{
 		udp.beginPacket(mc_ip, 12595);
 		udp.write("doorbell");
@@ -137,21 +137,41 @@ static char doorbell(char *data, unsigned long *time, unsigned long now)
 		}
 	digitalWrite(BUZZER_PIN, LOW);
 	*time = now + 4000;
-	if ((*data) == 4)
+	if (((*data) & 0x0F) == 4)
 		return SCHEDULE_REDO;
+	return SCHEDULE_DONE;
+	}
+
+static char doorbell_holdoff(char *data, unsigned long *time, unsigned long now)
+	{
+	log_msg("holdoff()");
+	if ((doorbell_data & 0x0F) == 5)
+		ring_doorbell(1);
 	return SCHEDULE_DONE;
 	}
 
 /*
 	This function must work inside or outside of an ISR.
 */
-void ring_doorbell(void)
+void ring_doorbell(char send_packet)
 	{
-	if (doorbell_data == 5)
+	doorbell_data = send_packet ? 0x80 : 0;
+	digitalWrite(BUZZER_PIN, HIGH);
+	schedule(0, doorbell, &doorbell_data);
+	}
+
+void doorbell_isr(void)
+	{
+	static volatile void *doorbell_t = NULL;
+	char pressed = !digitalRead(DOORBELL_PIN);
+	unsigned long m = millis();
+
+	if (pressed)
+		doorbell_t = schedule(m + 50, doorbell_holdoff, NULL);
+	else if (doorbell_t)
 		{
-		doorbell_data = 0;
-		digitalWrite(BUZZER_PIN, HIGH);
-		schedule(0, doorbell, &doorbell_data);
+		schedule_cancel(doorbell_t);
+		doorbell_t = NULL;
 		}
 	}
 
@@ -163,7 +183,7 @@ void setup()
 	digitalWrite(BUZZER_PIN, LOW);
 	pinMode(DOORBELL_PIN, INPUT_PULLUP);
 	pinMode(BUZZER_PIN,   OUTPUT);
-	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), ring_doorbell, FALLING);
+	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), doorbell_isr, CHANGE);
 
   Serial.println("Initializing Ethernet Controller.");
 	Ethernet.begin(mac, ip, dns_d, gateway, subnet);
