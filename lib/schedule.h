@@ -17,7 +17,8 @@ struct task
 	void          *data;
 	};
 
-void schedule(unsigned long time, time_handler *func, void *ptr);
+void schedule_cancel(void *ptr);
+void *schedule(unsigned long time, time_handler *func, void *ptr);
 void run_schedule(void);
 
 #ifdef __cplusplus

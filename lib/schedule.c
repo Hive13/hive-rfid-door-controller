@@ -4,7 +4,42 @@
 
 static struct task *task_chain = NULL;
 
-void schedule(unsigned long time, time_handler *func, void *ptr)
+void schedule_cancel(void *ptr)
+	{
+	struct task *t = task_chain;
+#ifdef ARDUINO_AVR_MEGA2560
+	unsigned int oldREG;
+
+	oldREG = SREG;
+	cli();
+#else
+	noInterrupts();
+#endif
+
+	while (t)
+		{
+		if (t == ptr)
+			{
+			if (t->prev)
+				t->prev->next = t->next;
+			else
+				task_chain = t->next;
+			if (t->next)
+				t->next->prev = t->prev;
+			free(t);
+			break;
+			}
+		t = t->next;
+		}
+
+#ifdef ARDUINO_AVR_MEGA2560
+	SREG = oldREG;
+#else
+	interrupts();
+#endif
+	}
+
+void *schedule(unsigned long time, time_handler *func, void *ptr)
 	{
 #ifdef ARDUINO_AVR_MEGA2560
 	unsigned int oldREG;
@@ -22,7 +57,6 @@ void schedule(unsigned long time, time_handler *func, void *ptr)
 #else
 	noInterrupts();
 #endif
-
 
 	if (!task_chain)
 		{
@@ -42,6 +76,8 @@ void schedule(unsigned long time, time_handler *func, void *ptr)
 #else
 	interrupts();
 #endif
+
+	return t;
 	}
 
 void run_schedule(void)
