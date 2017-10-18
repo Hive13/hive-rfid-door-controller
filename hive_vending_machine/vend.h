@@ -9,7 +9,6 @@ struct soda
 	{
 	unsigned char switch_pin;
 	unsigned char relay_pin;
-	unsigned char leds[2];
 	unsigned char diet;
 	};
 
@@ -29,7 +28,7 @@ signed char can_vend(unsigned long badge);
 #define VEND_PIN 7
 #define BEEP_PIN 9
 #define WIEGAND_LIGHT_PIN 8
-#define MIN_DEBOUNCE_COUNT 20
+#define MIN_DEBOUNCE_COUNT 100
 
 #define KIND_ANY 0
 #define KIND_REGULAR 1

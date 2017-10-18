@@ -8,21 +8,20 @@
 #include "temp.h"
 #include "http.h"
 
-static unsigned char key[] = {'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A', 'A'};
-static char *device = "soda_machine";
+unsigned char key[] = {'S', 'o', 'd', 'a', ' ', 'M', 'a', 'c', 'h', 'i', 'n', 'e', '!', '!', '!', '!'};
+char *device = "soda_machine";
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
-// In a format of switch pin number, relay pin number, and then the two led numbers
+// In a format of switch pin number, relay pin number, and a diet flag.
 struct soda sodas[] = {
-//unsigned char sodaButtons[][4] = {
-	{22, 37, 18, 19, 0},
-	{24, 35, 16, 17, 0},
-	{26, 33, 14, 15, 0},
-	{28, 31, 12, 13, 0},
-	{30, 29, 10, 11, 0},
-	{32, 27, 8, 9, 1},
-	{34, 25, 6, 7, 1},
-	{36, 23, 4, 5, 1},
+	{22, 37, 0},
+	{24, 35, 0},
+	{26, 33, 0},
+	{28, 31, 0},
+	{30, 29, 0},
+	{32, 27, 1},
+	{34, 25, 1},
+	{36, 23, 1},
 };
 
 unsigned char soda_count = SODA_COUNT;
@@ -58,7 +57,7 @@ void set_vend(char c)
 	else
 		{
 		cur_color = Wheel(color_at++);
-		leds_one(c, cur_color);
+		leds_one(c, cur_color, 1);
 		}
 	}
 
@@ -85,7 +84,7 @@ void do_random_vend(unsigned char kind)
 		else if (kind == KIND_REGULAR && !sodas[randomSoda].diet)
 			break;
 		}
-	leds_one(randomSoda, randomSodaColor);
+	leds_one(randomSoda, randomSodaColor, 1);
 	digitalWrite(sodas[randomSoda].relay_pin, 0);
 	log_msg("Random soda is %d!\n", randomSoda);
 	// Let the chosen soda stay lit for one second
