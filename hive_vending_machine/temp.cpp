@@ -152,24 +152,18 @@ char handle_temperature(void *ptr, unsigned long *t, unsigned long m)
 	unsigned char i;
 	unsigned long temp;
 
-	log_msg("a");
-
 	if (!flag)
 		{
-		log_msg("a1");
 		if (start_read_temperature())
 			*t = 0;
 		else
 			{
-			log_msg("a2");
 			*t = m + TEMPERATURE_READ_TIME;
 			flag = 1;
 			}
-		log_msg("a3");
 		return SCHEDULE_REDO;
 		}
 	
-	log_msg("b");
 	flag = 0;
 	for (i = 0; i < sensor_count; i++)
 		{
@@ -177,7 +171,6 @@ char handle_temperature(void *ptr, unsigned long *t, unsigned long m)
 		if (sensors[i].func)
 			sensors[i].func(sensors + i, temp);
 		}
-	log_msg("c");
 	*t = m + TEMPERATURE_UPDATE_INTERVAL - TEMPERATURE_READ_TIME;
 	return SCHEDULE_REDO;
 	}
