@@ -23,6 +23,8 @@ static byte addr[8];
 static char temp_host[] = "portal.hive13.org";
 static uint32_t cur_temp = 0;
 
+void log_temp(unsigned long temp);
+
 char main_temperature_sensor(struct temp_sensor *me, unsigned long temp)
 	{
 	char buf[256];
