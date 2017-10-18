@@ -6,16 +6,16 @@
 // https://github.com/amcewen/HttpClient
 #include <b64.h>
 #include <HttpClient.h>
-// https://github.com/adafruit/Adafruit-WS2801-Library
-#include <Adafruit_WS2801.h>
 // https://github.com/PaulStoffregen/OneWire
 #include <OneWire.h>
+#include <Adafruit_NeoPixel.h>
 
 #include "leds.h"
 #include "temp.h"
 #include "vend.h"
 #include "log.h"
 #include "API.h"
+#include "schedule.h"
 
 static WIEGAND wg;
 static byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
@@ -31,6 +31,14 @@ ISR(PCINT2_vect)
 	sold_out_changed = 1;
 	sold_out_changed_at = millis();
 	}
+
+char handle_ethernet(void *ptr, unsigned long *t, unsigned long m)
+	{
+	Ethernet.maintain();
+
+	return SCHEDULE_REDO;
+	}
+
 
 void setup()
 	{
@@ -52,6 +60,7 @@ void setup()
 		log_msg("Error obtaining DHCP address.  Let's wait a second and try again.");
 		delay(1000);
 		}
+	schedule(0, handle_ethernet, NULL);
 	
 	wg.begin();
 	temperature_init();
@@ -59,12 +68,9 @@ void setup()
 
 void loop()
 	{
-	char host_path[255];
 	unsigned long code;
-	int err;
 
-	Ethernet.maintain();
-	handle_temperature();
+	run_schedule();
 	if (sold_out_changed && sold_out_changed_at < millis() - 250)
 		{
 		sold_out = sold_out_t;
