@@ -6,7 +6,6 @@
 #include "log.h"
 #include "API.h"
 #include "temp.h"
-#include "leds.h"
 #include "schedule.h"
 #include "http.h"
 #include "cJSON.h"
@@ -27,7 +26,7 @@ void temperature_init(unsigned char pin, unsigned long interval, struct temp_sen
 	sensor_count      = count;
 	schedule_interval = interval;
 
-	schedule(0, handle_temperature, sensors);
+	schedule(0, (time_handler *)handle_temperature, sensors);
 	}
 
 char start_read_temperature(void)
