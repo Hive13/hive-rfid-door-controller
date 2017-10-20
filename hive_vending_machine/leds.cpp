@@ -12,7 +12,7 @@ extern unsigned char soda_count;
 extern struct soda sodas[];
 extern unsigned char sold_out;
 
-static Adafruit_NeoPixel leds = Adafruit_NeoPixel(soda_count, LED_PIN, NEO_RGB | NEO_KHZ800);
+static Adafruit_NeoPixel leds = Adafruit_NeoPixel(soda_count, LED_PIN, NEO_GRB | NEO_KHZ800);
 
 void leds_show(unsigned char do_sold_out)
 	{
@@ -32,6 +32,22 @@ void leds_init(void)
 
 	log_msg("Initializing lights.");
 	leds.begin();
+	for (i = 0; i < soda_count; i++)
+		leds.setPixelColor(i, 255, 0, 0);
+	leds_show(0);
+	delay(250);
+	for (i = 0; i < soda_count; i++)
+		leds.setPixelColor(i, 0, 255, 0);
+	leds_show(0);
+	delay(250);
+	for (i = 0; i < soda_count; i++)
+		leds.setPixelColor(i, 0, 0, 255);
+	leds_show(0);
+	delay(250);
+	for (i = 0; i < soda_count; i++)
+		leds.setPixelColor(i, 255, 255, 255);
+	leds_show(0);
+	delay(250);
 	leds_busy();
 	}
 
