@@ -3,6 +3,7 @@
 #include <ESP8266HTTPClient.h>
 
 #include "schedule.h"
+#include "pins.h"
 #include "log.h"
 #include "ui.h"
 #include "wifi.h"

@@ -1,8 +1,9 @@
 #include <Wiegand.h>
 
 #include "cJSON.h"
+#include "pins.h"
 #include "API.h"
-#include "temp.h"
+#include "access_temp.h"
 #include "schedule.h"
 #include "log.h"
 #include "http.h"
@@ -27,7 +28,7 @@ void setup(void)
 	wg.begin(D0_PIN, D0_PIN, D1_PIN, D1_PIN);
 	log_begin(115200);
 
-	temperature_init();
+	access_temperature_init();
 	wifi_init();
 
 	beep_it(&start_of_day);
