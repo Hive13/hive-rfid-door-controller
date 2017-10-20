@@ -15,7 +15,7 @@ struct soda
 void set_vend(char c);
 void do_random_vend(unsigned char kind);
 void do_vend(void);
-void vend_check(void);
+char vend_check(void *ptr, unsigned long *t, unsigned long m);
 void vend_init(void);
 signed char can_vend(unsigned long badge);
 

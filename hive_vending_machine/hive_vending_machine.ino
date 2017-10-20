@@ -1,7 +1,6 @@
 #include <Ethernet.h>
 // https://github.com/monkeyboard/Wiegand-Protocol-Library-for-Arduino
 #include <Wiegand.h>
-#include <SPI.h>
 // The b64 and HttpClient libraries are both in this repository:
 // https://github.com/amcewen/HttpClient
 #include <b64.h>
@@ -11,7 +10,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #include "leds.h"
-#include "temp.h"
+#include "soda_temp.h"
 #include "vend.h"
 #include "log.h"
 #include "API.h"
@@ -63,7 +62,7 @@ void setup()
 	schedule(0, handle_ethernet, NULL);
 	
 	wg.begin();
-	temperature_init();
+	soda_temp_init();
 	}
 
 void loop()
@@ -88,8 +87,6 @@ void loop()
 		else
 			log_msg("Didn't receive the OK to vend...");
 		}
-	
-	vend_check();
 	}
 
 /* vim:set filetype=c: */

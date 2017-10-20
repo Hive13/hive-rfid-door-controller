@@ -7,6 +7,7 @@
 #include "leds.h"
 #include "temp.h"
 #include "http.h"
+#include "schedule.h"
 
 unsigned char key[] = {'S', 'o', 'd', 'a', ' ', 'M', 'a', 'c', 'h', 'i', 'n', 'e', '!', '!', '!', '!'};
 char *device = "soda_machine";
@@ -130,9 +131,11 @@ void vend_init(void)
 		pinMode(sodas[i].relay_pin, OUTPUT);
 		digitalWrite(sodas[i].relay_pin, HIGH);
 		}
+
+	schedule(0, vend_check, NULL);
 	}
 
-void vend_check(void)
+char vend_check(void *ptr, unsigned long *t, unsigned long m)
 	{
 	char pressed = -1;
 	unsigned char i, mask = 0;
@@ -174,7 +177,7 @@ void vend_check(void)
 	else if (mask == 0x03)
 		{
 		temperature_check();
-		return;
+		return SCHEDULE_REDO;
 		}
 	else if (mask == 0x06)
 		larsen_on = 1;
@@ -203,6 +206,7 @@ void vend_check(void)
 			}
 		}
 	set_vend(pressed);
+	return SCHEDULE_REDO;
 	}
 
 signed char can_vend(unsigned long badge)
