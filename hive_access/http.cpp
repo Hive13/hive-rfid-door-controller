@@ -119,6 +119,7 @@ void log_temp(unsigned long temp)
 		}
 	
 	json = cJSON_CreateObject();
+	cJSON_AddItemToObjectCS(json, "item", cJSON_CreateString("annex"));
 	cJSON_AddItemToObjectCS(json, "temperature", cJSON_CreateNumber(temp));
 
 	out = log_data(json, device, key, sizeof(key), rand, sizeof(rand));

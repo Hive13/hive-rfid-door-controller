@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
+#include <WiFiUdp.h>
 
 #include "schedule.h"
 #include "pins.h"
@@ -10,6 +11,40 @@
 
 static char *ssid = "hive13int";
 static char *pass = "hive13int";
+
+static WiFiUDP   udp;
+static IPAddress mc_ip(239, 72, 49, 51);
+
+static struct beep_pattern doorbell_beep =
+	{
+	.beep_ms     = 100,
+	.silence_ms  = 100,
+	.cycle_count = 15,
+	.options     = GREEN_WITH_BEEP,
+	};
+
+char handle_multicast(WiFiUDP *u, unsigned long *t, unsigned long now)
+	{
+	static unsigned long last_beep = 0;
+	int sz = u->parsePacket(), i;
+	unsigned char b[8];
+
+	if (sz <= 0)
+		return SCHEDULE_REDO;
+
+	i = u->read(b, 8);
+
+	if (i == 8 && !memcmp(b, "doorbell", 8))
+		{
+		if ((last_beep + 500) <= now)
+			beep_it(&doorbell_beep);
+		last_beep = now;
+		}
+
+	u->flush();
+
+	return SCHEDULE_REDO;
+	}
 
 char log_wifi_stuff(void *ptr, unsigned long *t, unsigned long now)
 	{
@@ -46,6 +81,9 @@ void wifi_init(void)
 	WiFi.setAutoConnect(1);
 	WiFi.setAutoReconnect(1);
 
+	udp.beginMulticast(WiFi.localIP(), mc_ip, 12595);
+
 	schedule(0, log_wifi_stuff, NULL);
+	schedule(0, (time_handler *)handle_multicast, &udp);
 	}
 
