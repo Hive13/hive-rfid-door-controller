@@ -64,33 +64,48 @@ void set_vend(char c)
 
 void do_random_vend(unsigned char kind)
 	{
-	uint32_t randomSodaColor;
-	unsigned char randomSoda, tries = 0;
+	unsigned long stop_at, randomSodaColor;
+	unsigned char randomSoda, tries = 0, color_at = 20 * SODA_COUNT, i;
 
-	// Pick the color that the chosen soda will be
-	randomSodaColor = Wheel(random() & 0xFF);
 	// Display the light show
-	randomColors(20, 5);
 	log_msg("Vending random soda!");
-	// Choose the random soda to vend
-	while (--tries) /* Eventually break the loop if shit hits the fan */
+
+	/* Light show while picking the soda */
+	for (i = 0; i < color_at; i++)
 		{
-		randomSoda = random() % SODA_COUNT;
-		if (sold_out & (1 << randomSoda))
-			continue;
-		if (kind == KIND_ANY)
-			break;
-		else if (kind == KIND_DIET && sodas[randomSoda].diet)
-			break;
-		else if (kind == KIND_REGULAR && !sodas[randomSoda].diet)
-			break;
+		tries = 0;
+		/*
+			Choose the random soda to vend
+			Eventually break the loop if shit hits the fan
+		*/
+		while (--tries)
+			{
+			randomSoda = random() % SODA_COUNT;
+			if (sold_out & (1 << randomSoda))
+				continue;
+			if (kind == KIND_ANY)
+				break;
+			else if (kind == KIND_DIET && sodas[randomSoda].diet)
+				break;
+			else if (kind == KIND_REGULAR && !sodas[randomSoda].diet)
+				break;
+			}
+		leds_random(randomSoda);
+		delay(20);
 		}
-	leds_one(randomSoda, randomSodaColor, 1);
+
 	digitalWrite(sodas[randomSoda].relay_pin, 0);
 	log_msg("Random soda is %d!\n", randomSoda);
-	// Let the chosen soda stay lit for one second
-	delay(1000);
-	// Turn off the LED
+
+	/* Cycle the chosen soda for one second */
+	color_at = 0;
+	stop_at = millis() + 1000;
+	while (millis() < stop_at)
+		{
+		randomSodaColor = Wheel(color_at++);
+		leds_one(randomSoda, randomSodaColor, 1);
+		}
+
 	leds_off();
 	}
 

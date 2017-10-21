@@ -89,6 +89,12 @@ void leds_off(void)
 	leds_show(1);
 	}
 
+void leds_random(char which)
+	{
+	leds.setPixelColor(which, Wheel(random(0, 255)));
+	leds_show(0);
+	}
+
 void leds_one(char which, uint32_t color, unsigned char do_sold_out)
 	{
 	unsigned char i;
