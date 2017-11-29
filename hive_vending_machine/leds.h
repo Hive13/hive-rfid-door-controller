@@ -11,6 +11,7 @@ void leds_init(void);
 void leds_off(void);
 void leds_busy(void);
 void leds_random(char which);
+void leds_all(uint32_t color);
 uint32_t Color(byte r, byte g, byte b);
 uint32_t Wheel(byte WheelPos);
 

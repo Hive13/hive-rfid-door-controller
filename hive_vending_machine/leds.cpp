@@ -89,6 +89,15 @@ void leds_off(void)
 	leds_show(1);
 	}
 
+void leds_all(unsigned long color)
+	{
+	unsigned char i;
+
+	for(i = 0; i < leds.numPixels(); i++)
+		leds.setPixelColor(i, color);
+	leds_show(1);
+	}
+
 void leds_random(char which)
 	{
 	leds.setPixelColor(which, Wheel(random(0, 255)));

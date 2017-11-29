@@ -34,7 +34,10 @@ signed int http_get_json(char *host, char *path, char *req_body, char **resp)
 
 	err = hc.responseStatusCode();
 	if (err != 200)
+		{
+		log_msg("Bad response: %u", err);
 		return RESPONSE_BAD_HTTP;
+		}
 	
 	if (hc.skipResponseHeaders() > 0)
 		{

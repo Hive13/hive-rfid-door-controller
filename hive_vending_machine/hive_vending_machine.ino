@@ -77,15 +77,11 @@ void loop()
 		sold_out_changed = 0;
 		}
 	
-	if(wg.available())
+	if (wg.available())
 		{
 		code = wg.getCode();
 		log_msg("Scanned badge %lu/0x%lX, type W%d", code, code, wg.getWiegandType());
-
-		if (can_vend(code) == RESPONSE_GOOD)
-			do_vend();
-		else
-			log_msg("Didn't receive the OK to vend...");
+		handle_vend(code);
 		}
 	}
 
