@@ -17,8 +17,8 @@
 #define NETWORK_TIMEOUT 5000
 #define NETWORK_DELAY   25
 
-char *location   = "main_door";
-char key[]       = {'Y', 'o', 'u', ' ', 'l', 'o', 's', 't', ' ', 't', 'h', 'e', 'G', 'a', 'm', 'e'};
+char *location = "main_door";
+char key[]     = {'Y', 'o', 'u', ' ', 'l', 'o', 's', 't', ' ', 't', 'h', 'e', 'G', 'a', 'm', 'e'};
 
 char check_badge(unsigned long badge)
 	{
@@ -42,7 +42,7 @@ char check_badge(unsigned long badge)
 	Serial.println(out);
 
 	hc.beginRequest();
-  hc.post("intweb.at.hive13.org", "/api/access");
+	hc.post("intweb.at.hive13.org", "/api/access");
 	hc.flush();
 	hc.sendHeader("Content-Type", "application/json");
 	hc.flush();
@@ -58,13 +58,13 @@ char check_badge(unsigned long badge)
 	body_len = hc.contentLength();
 	if (body_len + 1 > BODY_SZ)
 		return RESPONSE_BAD_HTTP;
-	
+
 	if (hc.skipResponseHeaders() > 0)
 		{
 		Serial.println("Header error.");
 		return RESPONSE_BAD_HTTP;
 		}
-	
+
 	start = millis();
 	l = 0;
 	while ((hc.connected() || hc.available()) && ((millis() - start) < NETWORK_TIMEOUT))
@@ -181,20 +181,20 @@ void setup()
 	log_begin(115200);
 
 	digitalWrite(BUZZER_PIN, LOW);
-	pinMode(DOORBELL_PIN, INPUT_PULLUP);
-	pinMode(BUZZER_PIN,   OUTPUT);
+	pinMode(DOORBELL_PIN,    INPUT_PULLUP);
+	pinMode(BUZZER_PIN,      OUTPUT);
 	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), doorbell_isr, CHANGE);
 
-  Serial.println("Initializing Ethernet Controller.");
+	log_msg("Initializing Ethernet Controller.");
 	Ethernet.begin(mac, ip, dns_d, gateway, subnet);
 	udp.beginMulticast(mc_ip, 12595);
 
-  // Initialize Wiegand Interface
-  wg.begin();
-  
-  // initialize the usersCache array as all 0.
+	// Initialize Wiegand Interface
+	wg.begin();
+
+	// initialize the usersCache array as all 0.
 	memset(usersCache, 0, sizeof(usersCache));
-	
+
 	beep_it(&start_of_day);
 	}
 
