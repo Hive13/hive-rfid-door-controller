@@ -1,191 +1,53 @@
-#include <ESP8266WiFi.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_NeoMatrix.h>
+#include <Adafruit_NeoPixel.h>
+#ifndef PSTR
+ #define PSTR // Make Arduino Due happy
+#endif
 
-char ssid[] = "hive13int";
-char pass[] = "hive13int";
-int status = WL_IDLE_STATUS;
+#define LED_WALL_HEIGHT  8
+#define LED_WALL_WIDTH   7
+#define LED_WALL_PIN     6
+#define LED_WALL_LAYOUT  (NEO_MATRIX_TOP | NEO_MATRIX_LEFT | NEO_MATRIX_ROWS | NEO_MATRIX_ZIGZAG)
+#define LED_WALL_OPTIONS (NEO_GRB | NEO_KHZ800)
 
-int latch_pin  = D0;
-int clock_pin  = D8;
+Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(LED_WALL_WIDTH, LED_WALL_HEIGHT, LED_WALL_PIN, LED_WALL_LAYOUT, LED_WALL_OPTIONS);
 
-#define LED_COLS     7
-#define LEDS_PER_COL 8
-
-struct led
+const uint16_t colors[] =
 	{
-	unsigned short r, g, b;
+	matrix.Color(255, 255, 0),
+	matrix.Color(0,   255, 255),
 	};
 
-struct led_col
+void setup()
 	{
-	int pin;
-	struct led leds[LEDS_PER_COL];
-	} cols[LED_COLS];
+	matrix.begin();
+	matrix.setTextWrap(false);
+	matrix.setBrightness(255);
+	matrix.setTextColor(colors[0]);
+	}
 
-void leds_init(void)
+int pass = 0;
+
+void show_text(char *text, unsigned short color)
 	{
-	unsigned char i;
-	int pins[] = {D1, D2, D3, D4, D5, D6, D7};
-
-	pinMode(latch_pin, OUTPUT);
-	pinMode(clock_pin, OUTPUT);
+	signed int x = matrix.width();
 	
-	digitalWrite(latch_pin, LOW);
-	digitalWrite(clock_pin, LOW);
-
-	for (i = 0; i < LED_COLS; i++)
+	while (1)
 		{
-		cols[i].pin = pins[i];
-		pinMode(cols[i].pin, OUTPUT);
-		memset(cols[i].leds, 0, LEDS_PER_COL * sizeof(struct led));
+		matrix.fillScreen(0);
+		matrix.setTextColor(color);
+		matrix.setCursor(x, 0);
+		matrix.print(text);
+		if (--x < -36)
+			return;
+		matrix.show();
+		delay(100);
 		}
 	}
 
-void leds_set_current(unsigned char current)
+void loop()
 	{
-	unsigned long packet, mask;
-	unsigned short c = current & 0x7f;
-	unsigned char i, j;
-
-	digitalWrite(clock_pin, LOW);
-
-	packet =
-		(((0x01) & 0x03) << 30) |
-		(c << 20) |
-		(c << 10) |
-		(c << 0);
-	for (i = 0; i < LEDS_PER_COL; i++)
-		for (mask = 0x80000000; mask; mask >>= 1)
-			{
-			for (j = 0; j < LED_COLS; j++)
-				digitalWrite(cols[j].pin, !!(packet & mask));
-			digitalWrite(clock_pin, HIGH);
-			delay(2);
-			digitalWrite(clock_pin, LOW);
-			}
-
-	delay(2);
-	digitalWrite(latch_pin,HIGH); // latch data into registers
-	delay(2);
-	digitalWrite(latch_pin,LOW);
-	}
-
-void leds_update(void)
-	{
-	unsigned long packet[LED_COLS], mask;
-	unsigned char i, j;
-
-	digitalWrite(clock_pin, LOW);
-
-	for (i = 0; i < LEDS_PER_COL; i++)
-		{
-		for (j = 0; j < LED_COLS; j++)
-			{
-			packet[j] =
-				(((0x00) & 0x03) << 30) |
-				((cols[j].leds[i].b & 0x3FF) << 20) |
-				((cols[j].leds[i].r & 0x3FF) << 10) |
-				((cols[j].leds[i].g & 0x3FF) << 0);
-			}
-		for (mask = 0x80000000; mask; mask >>= 1)
-			{
-			for (j = 0; j < LED_COLS; j++)
-				digitalWrite(cols[j].pin, !!(packet[j] & mask));
-			digitalWrite(clock_pin, HIGH);
-			delay(2);
-			digitalWrite(clock_pin, LOW);
-			}
-		}
-
-	delay(2);
-	digitalWrite(latch_pin,HIGH); // latch data into registers
-	delay(2);
-	digitalWrite(latch_pin,LOW);
-	}
-
-void loop(void)
-	{
-	static unsigned char l = 0;
-	unsigned char i, j;
-
-	for (i = 0; i < LED_COLS; i++)
-		for (j = 0; j < LEDS_PER_COL; j++)
-			{
-			memset(&(cols[i].leds[j]), 0, sizeof(struct led));
-			switch ((l + i) % 3)
-				{
-				case 0:
-					cols[i].leds[j].r = 0x3FF;
-					break;
-				case 1:
-					cols[i].leds[j].g = 0x3FF;
-					break;
-				case 2:
-					cols[i].leds[j].b = 0x3FF;
-					break;
-				}
-			}
-
-	l = (l + 1) % 3;
-	leds_update();
-	delay(500);
-	}
-
-void setup(void)
-	{
-	Serial.begin(115200);
-	delay(1);
-
-	Serial.print("Attempting to connect to WPA SSID: ");
-	Serial.println(ssid);
-
-	status = WiFi.begin(ssid, pass);
-	while (WiFi.status() != WL_CONNECTED)
-		{
-		Serial.print(".");
-		delay(1000);
-		}
-	Serial.print("You're connected to the network");
-	printCurrentNet();
-	printWifiData();
-
-	leds_init();
-	leds_set_current(0x7F);
-	}
-
-void printWifiData()
-	{
-	// print your WiFi shield's IP address:
-	IPAddress ip = WiFi.localIP();
-	
-	Serial.print("IP Address: ");
-	Serial.println(ip);
-	Serial.println(ip);
-	
-	// print your MAC address:
-	byte mac[6];
-	WiFi.macAddress(mac);
-	Serial.print("MAC address: ");
-	Serial.print(mac[5],HEX);
-	Serial.print(":");
-	Serial.print(mac[4],HEX);
-	Serial.print(":");
-	Serial.print(mac[3],HEX);
-	Serial.print(":");
-	Serial.print(mac[2],HEX);
-	Serial.print(":");
-	Serial.print(mac[1],HEX);
-	Serial.print(":");
-	Serial.println(mac[0],HEX);
-	}
-
-void printCurrentNet()
-	{
-	// print the SSID of the network you're attached to:
-	Serial.print("SSID: ");
-	Serial.println(WiFi.SSID());
-	
-	// print the received signal strength:
-	long rssi = WiFi.RSSI();
-	Serial.print("signal strength (RSSI):");
-	Serial.println(rssi);
+	show_text("Hive13", colors[0]);
+	show_text("Fronk", colors[1]);
 	}
