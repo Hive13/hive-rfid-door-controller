@@ -32,6 +32,7 @@ int pass = 0;
 void show_text(char *text, unsigned short color)
 	{
 	signed int x = matrix.width();
+	signed int w = -6 * strlen(text);
 	
 	while (1)
 		{
@@ -39,7 +40,7 @@ void show_text(char *text, unsigned short color)
 		matrix.setTextColor(color);
 		matrix.setCursor(x, 0);
 		matrix.print(text);
-		if (--x < -36)
+		if (--x < w)
 			return;
 		matrix.show();
 		delay(100);
