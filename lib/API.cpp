@@ -82,6 +82,19 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 		return RESPONSE_BAD_CKSUM;
 		}
 	
+	response = cJSON_DetachItemFromObject(data, "nonce_valid");
+	if (!response)
+		{
+		cJSON_Delete(data);
+		return RESPONSE_BAD_NONCE;
+		}
+	if (response->type != cJSON_True)
+		{
+		cJSON_Delete(data);
+		cJSON_Delete(response);
+		return RESPONSE_BAD_NONCE;
+		}
+	
 	response = cJSON_DetachItemFromObject(data, "response");
 	if (!response)
 		{

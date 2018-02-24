@@ -3,6 +3,7 @@
 
 #define SHA512_SZ 64
 
+#define RESPONSE_BAD_NONCE     5
 #define RESPONSE_ACCESS_DENIED 4
 #define RESPONSE_BAD_JSON      3
 #define RESPONSE_BAD_HTTP      2
