@@ -97,6 +97,11 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 			}
 		cJSON_Delete(result);
 		}
+	else if (i == RESPONSE_BAD_NONCE)
+		{
+		log_msg("Invalid nonce.");
+		update_nonce();
+		}
 	else
 		{
 		log_msg("Error: %i", i);
@@ -154,6 +159,11 @@ void log_temp(unsigned long temp)
 		out = json ? json->valuestring : NULL;
 		log_msg("Temperature recorded: %s", out);
 		cJSON_Delete(result);
+		}
+	else if (i == RESPONSE_BAD_NONCE)
+		{
+		log_msg("Invalid nonce.");
+		update_nonce();
 		}
 	else
 		log_msg("Error: %i", i);
