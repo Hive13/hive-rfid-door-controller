@@ -66,6 +66,7 @@ void setup(void)
 	beep_it(&init_wifi);
 	wifi_init();
 	delay(1000);
+	update_nonce();
 
 	beep_it(&start_of_day);
 	log_msg("Ready to rumble!");
