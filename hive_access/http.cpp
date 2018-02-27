@@ -62,7 +62,7 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 	
 	out = get_request(badge_num, "access", location, device, key, sizeof(key), rand, sizeof(rand), nonce);
 
-	log_msg("Request response: %s", out);
+	log_msg("Request: %s", out);
 
 	http.begin(host);
 	http.addHeader("Content-Type", "application/json");
@@ -79,6 +79,7 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 		}
 
 	body = http.getString();
+	log_msg("Response: %s", body.c_str());
 	i = parse_response((char *)body.c_str(), &result, key, sizeof(key), rand, sizeof(rand));
 
 	if (i == RESPONSE_GOOD)
@@ -148,6 +149,7 @@ void log_temp(unsigned long temp)
 		}
 
 	body = http.getString();
+	log_msg("Response: %s", body.c_str());
 	i = parse_response((char *)body.c_str(), &result, key, sizeof(key), rand, sizeof(rand));
 
 	if (i == RESPONSE_GOOD)
@@ -204,6 +206,7 @@ void update_nonce(void)
 		}
 
 	body = http.getString();
+	log_msg("Response: %s", body.c_str());
 	i = parse_response((char *)body.c_str(), &result, key, sizeof(key), rand, sizeof(rand));
 
 	if (i == RESPONSE_GOOD)
