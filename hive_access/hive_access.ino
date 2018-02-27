@@ -1,7 +1,7 @@
 #include <Wiegand.h>
 
 #include "cJSON.h"
-#include "pins.h"
+#include "config.h"
 #include "API.h"
 #include "access_temp.h"
 #include "schedule.h"
