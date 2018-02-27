@@ -89,7 +89,7 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 	return i;
 	}
 
-void check_badge(unsigned long badge_num, void (*success)(void))
+unsigned char check_badge(unsigned long badge_num, void (*success)(void))
 	{
 	struct cJSON *json, *result;
 	unsigned char i;
@@ -112,14 +112,21 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 		{
 		json = cJSON_GetObjectItem(result, "access");
 		if (json && json->type == cJSON_True)
-			success();
+			{
+			if (success)
+				success();
+			i = 1;
+			}
 		else
 			{
 			log_msg("Access denied.");
 			beep_it(&invalid_card);
+			i = 0;
 			}
 		cJSON_Delete(result);
+		return i;
 		}
+	return 0;
 	}
 
 void log_temp(unsigned long temp)
