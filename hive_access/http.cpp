@@ -42,61 +42,39 @@ static char key[]        = {'F', 'u', 'c', 'k', 'F', 'u', 'c', 'k', 'F', 'u', 'c
 static const char host[] = "http://intweb.at.hive13.org/api/access";
 static char nonce[33];
 
-void check_badge(unsigned long badge_num, void (*success)(void))
+unsigned char http_request(unsigned char *request, struct cJSON **result, char *rand, unsigned char rand_len)
 	{
-	struct cJSON *json, *result;
-	unsigned char i;
-	unsigned long r;
-	char *out;
-	char rand[16];
-	HTTPClient http;
 	int code;
+	HTTPClient http;
 	String body;
-
-	for (i = 0; i < sizeof(rand); i++)
-		{
-		if (!(i % 4))
-			r = RANDOM_REG32;
-		rand[i] = ((r >> (3 - i)) & 0xFF);
-		}
+	unsigned char i;
+	struct cJSON *new_nonce;
 	
-	out = get_request(badge_num, "access", location, device, key, sizeof(key), rand, sizeof(rand), nonce);
-
-	log_msg("Request: %s", out);
+	log_msg("Request: %s", request);
 
 	http.begin(host);
 	http.addHeader("Content-Type", "application/json");
 
-	code = http.POST((unsigned char *)out, strlen(out));
-	free(out);
+	code = http.POST(request, strlen((char *)request));
+	free(request);
 
 	if (code != 200)
 		{
 		log_msg("Got response back: %i", code);
 		beep_it(&network_error);
 		wifi_error();
-		return /*(RESPONSE_BAD_HTTP | ((code << 8)) & 0x7F00)*/;
+		return RESPONSE_BAD_HTTP;
 		}
 
 	body = http.getString();
 	log_msg("Response: %s", body.c_str());
-	i = parse_response((char *)body.c_str(), &result, key, sizeof(key), rand, sizeof(rand));
-
+	i = parse_response((char *)body.c_str(), result, key, sizeof(key), rand, rand_len);
 	if (i == RESPONSE_GOOD)
 		{
-		json = cJSON_GetObjectItem(result, "new_nonce");
-		memmove(nonce, json->valuestring, 32);
+		new_nonce = cJSON_GetObjectItem(*result, "new_nonce");
+		memmove(nonce, new_nonce->valuestring, 32);
 		nonce[32] = 0;
 		log_msg("Good response!");
-		json = cJSON_GetObjectItem(result, "access");
-		if (json && json->type == cJSON_True)
-			success();
-		else
-			{
-			log_msg("Access denied.");
-			beep_it(&invalid_card);
-			}
-		cJSON_Delete(result);
 		}
 	else if (i == RESPONSE_BAD_NONCE)
 		{
@@ -108,6 +86,40 @@ void check_badge(unsigned long badge_num, void (*success)(void))
 		log_msg("Error: %i", i);
 		beep_it(&packet_error);
 		}
+	return i;
+	}
+
+void check_badge(unsigned long badge_num, void (*success)(void))
+	{
+	struct cJSON *json, *result;
+	unsigned char i;
+	unsigned long r;
+	unsigned char *out;
+	char rand[16];
+
+	for (i = 0; i < sizeof(rand); i++)
+		{
+		if (!(i % 4))
+			r = RANDOM_REG32;
+		rand[i] = ((r >> (3 - i)) & 0xFF);
+		}
+	
+	out = (unsigned char *)get_request(badge_num, "access", location, device, key, sizeof(key), rand, sizeof(rand), nonce);
+	
+	i = http_request(out, &result, rand, sizeof(rand));
+
+	if (i == RESPONSE_GOOD)
+		{
+		json = cJSON_GetObjectItem(result, "access");
+		if (json && json->type == cJSON_True)
+			success();
+		else
+			{
+			log_msg("Access denied.");
+			beep_it(&invalid_card);
+			}
+		cJSON_Delete(result);
+		}
 	}
 
 void log_temp(unsigned long temp)
@@ -117,9 +129,6 @@ void log_temp(unsigned long temp)
 	unsigned long r;
 	char *out;
 	char rand[16];
-	HTTPClient http;
-	int code;
-	String body;
 
 	for (i = 0; i < sizeof(rand); i++)
 		{
@@ -133,54 +142,24 @@ void log_temp(unsigned long temp)
 	cJSON_AddItemToObjectCS(json, "temperature", cJSON_CreateNumber(temp));
 
 	out = log_data(json, device, key, sizeof(key), rand, sizeof(rand), nonce);
-	log_msg(out);
-
-	http.begin(host);
-	http.addHeader("Content-Type", "application/json");
-
-	code = http.POST((unsigned char *)out, strlen(out));
-	free(out);
-
-	if (code != 200)
-		{
-		log_msg("Got response back: %i", code);
-		wifi_error();
-		return;
-		}
-
-	body = http.getString();
-	log_msg("Response: %s", body.c_str());
-	i = parse_response((char *)body.c_str(), &result, key, sizeof(key), rand, sizeof(rand));
+	i = http_request(out, &result, rand, sizeof(rand));
 
 	if (i == RESPONSE_GOOD)
 		{
-		json = cJSON_GetObjectItem(result, "new_nonce");
-		memmove(nonce, json->valuestring, 32);
-		nonce[32] = 0;
 		json = cJSON_GetObjectItem(result, "error");
 		out = json ? json->valuestring : NULL;
 		log_msg("Temperature recorded: %s", out);
 		cJSON_Delete(result);
 		}
-	else if (i == RESPONSE_BAD_NONCE)
-		{
-		log_msg("Invalid nonce.");
-		update_nonce();
-		}
-	else
-		log_msg("Error: %i", i);
 	}
 
 void update_nonce(void)
 	{
-	struct cJSON *json, *result;
+	struct cJSON *result;
 	unsigned char i;
 	unsigned long r;
 	char *out;
 	char rand[16];
-	HTTPClient http;
-	int code;
-	String body;
 	
 	for (i = 0; i < sizeof(rand); i++)
 		{
@@ -190,33 +169,9 @@ void update_nonce(void)
 		}
 	
 	out = get_nonce(device, key, sizeof(key), rand, sizeof(rand));
-	log_msg(out);
-
-	http.begin(host);
-	http.addHeader("Content-Type", "application/json");
-
-	code = http.POST((unsigned char *)out, strlen(out));
-	free(out);
-
-	if (code != 200)
-		{
-		log_msg("Got response back: %i", code);
-		wifi_error();
-		return;
-		}
-
-	body = http.getString();
-	log_msg("Response: %s", body.c_str());
-	i = parse_response((char *)body.c_str(), &result, key, sizeof(key), rand, sizeof(rand));
+	i = http_request(out, &result, rand, sizeof(rand));
 
 	if (i == RESPONSE_GOOD)
-		{
-		json = cJSON_GetObjectItem(result, "new_nonce");
-		memmove(nonce, json->valuestring, 32);
-		nonce[32] = 0;
 		cJSON_Delete(result);
-		}
-	else
-		log_msg("Error: %i", i);
 	}
 
