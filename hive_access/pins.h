@@ -8,4 +8,7 @@
 #define OPEN_PIN  D3
 #define DOOR_PIN  D4
 
+#define LIGHT_INV
+#define BEEP_INV
+
 #endif /* __PINS_H */

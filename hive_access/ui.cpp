@@ -18,12 +18,12 @@ static char led_flicker(void *data, unsigned long *time, unsigned long now)
 	if (!c)
 		{
 		*time = now + 50;
-		LIGHT_GREEN();
+		LIGHT_GREEN(LIGHT_PIN);
 		}
 	else
 		{
 		*time = now + 2500;
-		LIGHT_RED();
+		LIGHT_RED(LIGHT_PIN);
 		}
 	c = !c;
 	return SCHEDULE_REDO;
@@ -31,14 +31,14 @@ static char led_flicker(void *data, unsigned long *time, unsigned long now)
 
 void ui_init(void)
 	{
-	digitalWrite(BEEP_PIN,  LOW);
+	digitalWrite(BEEP_PIN,  BEEP_OFF);
 	digitalWrite(DOOR_PIN,  HIGH);
-	digitalWrite(LIGHT_PIN, LOW);
+	LIGHT_RED(LIGHT_PIN);
 	
 	pinMode(BEEP_PIN,  OUTPUT);
 	pinMode(DOOR_PIN,  OUTPUT);
 	pinMode(LIGHT_PIN, OUTPUT);
-	pinMode(OPEN_PIN,  INPUT);
+	pinMode(OPEN_PIN,  INPUT_PULLUP);
 
 	schedule(0, (time_handler *)led_flicker, NULL);
 	}
@@ -49,28 +49,28 @@ void beep_it(struct beep_pattern *pattern)
 	register unsigned char light = pattern->options & 0x03;
 
 	if (light == GREEN_ALWAYS)
-		LIGHT_GREEN();
+		LIGHT_GREEN(LIGHT_PIN);
 	else if (light == RED_ALWAYS)
-		LIGHT_RED();
+		LIGHT_RED(LIGHT_PIN);
 
 	while (i < pattern->cycle_count)
 		{
 		if (i++)
 			delay(pattern->silence_ms);
 		if (light == RED_WITH_BEEP)
-			LIGHT_RED();
+			LIGHT_RED(LIGHT_PIN);
 		else if (light == GREEN_WITH_BEEP)
-			LIGHT_GREEN();
-		digitalWrite(BEEP_PIN, HIGH);
+			LIGHT_GREEN(LIGHT_PIN);
+		digitalWrite(BEEP_PIN, BEEP_ON);
 		delay(pattern->beep_ms);
-		digitalWrite(BEEP_PIN, LOW);
+		digitalWrite(BEEP_PIN, BEEP_OFF);
 		if (light == RED_WITH_BEEP)
-			LIGHT_GREEN();
+			LIGHT_GREEN(LIGHT_PIN);
 		else if (light == GREEN_WITH_BEEP)
-			LIGHT_RED();
+			LIGHT_RED(LIGHT_PIN);
 		}
 	
-	/* Always lease the light in this state when idle */
+	/* Always leave the light in this state when idle */
 	LIGHT_RED();
 	}
 
@@ -92,8 +92,8 @@ static char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 			}
 		}
 	digitalWrite(d->door_pin,  HIGH);
-	digitalWrite(d->beep_pin,  LOW);
-	digitalWrite(d->light_pin, LOW);
+	digitalWrite(d->beep_pin,  BEEP_OFF);
+	LIGHT_RED(d->light_pin);
 	d->status = OPEN_IDLE;
 	return SCHEDULE_DONE;
 	}

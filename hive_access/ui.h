@@ -1,8 +1,21 @@
 #ifndef __UI_H
 #define __UI_H
 
-#define LIGHT_RED()   digitalWrite(LIGHT_PIN, LOW)
-#define LIGHT_GREEN() digitalWrite(LIGHT_PIN, HIGH)
+#ifdef LIGHT_INV
+#define LIGHT_RED(pin)   digitalWrite((pin), LOW)
+#define LIGHT_GREEN(pin) digitalWrite((pin), HIGH)
+#else
+#define LIGHT_RED(pin)   digitalWrite((pin), HIGH)
+#define LIGHT_GREEN(pin) digitalWrite((pin), LOW)
+#endif
+
+#ifdef BEEP_INV
+#define BEEP_ON  HIGH
+#define BEEP_OFF LOW
+#else
+#define BEEP_ON  LOW
+#define BEEP_OFF HIGH
+#endif
 
 /* Number of ms */
 #define DOOR_OPEN_TIME     5000
