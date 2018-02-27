@@ -9,16 +9,24 @@
 #define LIGHT_PIN 13
 #define BEEP_PIN  12
 #define OPEN_PIN  A0
+#define D0_PIN    2
+#define D1_PIN    3
+
+#define BUZZER_PIN   19
+#define DOORBELL_PIN 18
 
 #else
 #ifdef PLATFORM_ESP8266
 
+#define DOOR_PIN  D4
+#define LIGHT_PIN D0
 #define BEEP_PIN  D8
+#define OPEN_PIN  D3
 #define D0_PIN    D1
 #define D1_PIN    D2
-#define LIGHT_PIN D0
-#define OPEN_PIN  D3
-#define DOOR_PIN  D4
+
+#define LIGHT_INV
+#define BEEP_INV
 
 #else
 #error No platform defined.
@@ -29,10 +37,6 @@
 #define DOOR_OPEN_TIME 5000
 
 #define HTTP_HOST "http://intweb.at.hive13.org/api/access"
-
-#define BUZZER_PIN   19
-#define DOORBELL_PIN 18
-
 #define NETWORK_TIMEOUT 5000
 #define NETWORK_DELAY   25
 
