@@ -1,7 +1,6 @@
 #include <Arduino.h>
 
 #include "ui.h"
-#include "pins.h"
 #include "log.h"
 #include "schedule.h"
 

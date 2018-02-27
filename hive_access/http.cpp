@@ -3,12 +3,12 @@
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
 
+#include "http.h"
 #include "cJSON.h"
 #include "API.h"
 #include "temp.h"
 #include "schedule.h"
 #include "log.h"
-#include "http.h"
 #include "ui.h"
 #include "wifi.h"
 
@@ -36,10 +36,10 @@ struct beep_pattern packet_error =
 	.options     = RED_ALWAYS,
 	};
 
-static char *location    = "annex";
-static char *device      = "annex";
-static char key[]        = {'F', 'u', 'c', 'k', 'F', 'u', 'c', 'k', 'F', 'u', 'c', 'k', '!', '!', '!', '!'};
-static const char host[] = "http://intweb.at.hive13.org/api/access";
+static char *location    = LOCATION;
+static char *device      = DEVICE;
+static char key[]        = KEY;
+static const char host[] = HTTP_HOST;
 static char nonce[33];
 
 unsigned char http_request(unsigned char *request, struct cJSON **result, char *rand, unsigned char rand_len)
@@ -134,7 +134,7 @@ void log_temp(unsigned long temp)
 	struct cJSON *json, *result;
 	unsigned char i;
 	unsigned long r;
-	char *out;
+	unsigned char *out;
 	char rand[16];
 
 	for (i = 0; i < sizeof(rand); i++)
@@ -148,13 +148,13 @@ void log_temp(unsigned long temp)
 	cJSON_AddItemToObjectCS(json, "item", cJSON_CreateString("annex"));
 	cJSON_AddItemToObjectCS(json, "temperature", cJSON_CreateNumber(temp));
 
-	out = log_data(json, device, key, sizeof(key), rand, sizeof(rand), nonce);
+	out = (unsigned char *)log_data(json, device, key, sizeof(key), rand, sizeof(rand), nonce);
 	i = http_request(out, &result, rand, sizeof(rand));
 
 	if (i == RESPONSE_GOOD)
 		{
 		json = cJSON_GetObjectItem(result, "error");
-		out = json ? json->valuestring : NULL;
+		out = json ? (unsigned char *)json->valuestring : NULL;
 		log_msg("Temperature recorded: %s", out);
 		cJSON_Delete(result);
 		}
@@ -165,7 +165,7 @@ void update_nonce(void)
 	struct cJSON *result;
 	unsigned char i;
 	unsigned long r;
-	char *out;
+	unsigned char *out;
 	char rand[16];
 	
 	for (i = 0; i < sizeof(rand); i++)
@@ -175,7 +175,7 @@ void update_nonce(void)
 		rand[i] = ((r >> (3 - i)) & 0xFF);
 		}
 	
-	out = get_nonce(device, key, sizeof(key), rand, sizeof(rand));
+	out = (unsigned char *)get_nonce(device, key, sizeof(key), rand, sizeof(rand));
 	i = http_request(out, &result, rand, sizeof(rand));
 
 	if (i == RESPONSE_GOOD)

@@ -1,6 +1,8 @@
 #ifndef __WIFI_H
 #define __WIFI_H
 
+#include "config.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

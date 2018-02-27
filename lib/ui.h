@@ -1,6 +1,8 @@
 #ifndef __UI_H
 #define __UI_H
 
+#include "config.h"
+
 #ifdef LIGHT_INV
 #define LIGHT_RED(pin)   digitalWrite((pin), LOW)
 #define LIGHT_GREEN(pin) digitalWrite((pin), HIGH)
@@ -16,9 +18,6 @@
 #define BEEP_ON  LOW
 #define BEEP_OFF HIGH
 #endif
-
-/* Number of ms */
-#define DOOR_OPEN_TIME     5000
 
 #define OPEN_IDLE        0
 #define OPEN_IN_PROGRESS 1

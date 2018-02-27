@@ -3,14 +3,13 @@
 #include <ESP8266HTTPClient.h>
 #include <WiFiUdp.h>
 
+#include "wifi.h"
 #include "schedule.h"
-#include "pins.h"
 #include "log.h"
 #include "ui.h"
-#include "wifi.h"
 
-static char *ssid = "hive13int";
-static char *pass = "hive13int";
+static char *ssid = WIFI_SSID;
+static char *pass = WIFI_PASS;
 
 static WiFiUDP   udp;
 static IPAddress mc_ip(239, 72, 49, 51);
