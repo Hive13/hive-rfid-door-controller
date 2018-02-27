@@ -285,7 +285,7 @@ char *log_data(struct cJSON *l_data, char *device, char *key, unsigned char key_
 	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
 	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("log"));
 	cJSON_AddItemToObjectCS(data, "random_response", ran);
-	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(1));
+	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
 	get_hash(data, sha_buf, key, key_len);
 
 	print_hex(sha_buf_out, sha_buf, SHA512_SZ);

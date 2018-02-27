@@ -71,7 +71,7 @@ void beep_it(struct beep_pattern *pattern)
 		}
 	
 	/* Always leave the light in this state when idle */
-	LIGHT_RED();
+	LIGHT_RED(LIGHT_PIN);
 	}
 
 static char close_door(struct door_open *d, unsigned long *t, unsigned long m)
