@@ -1,158 +1,17 @@
-#include <b64.h>
-#include <HttpClient.h>
-
 #include <Wiegand.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
 
+#include "config.h"
 #include "cJSON.h"
 #include "API.h"
 #include "ui.h"
 #include "schedule.h"
 #include "log.h"
-#include "pins.h"
-
-#define BODY_SZ 1024
-
-#define NETWORK_TIMEOUT 5000
-#define NETWORK_DELAY   25
+#include "http.h"
 
 char *location = "main_door";
 char key[]     = {'Y', 'o', 'u', ' ', 'l', 'o', 's', 't', ' ', 't', 'h', 'e', 'G', 'a', 'm', 'e'};
-static char nonce[33];
-struct beep_pattern invalid_card =
-	{
-	.beep_ms     = 1000,
-	.silence_ms  = 0,
-	.cycle_count = 1,
-	.options     = RED_ALWAYS,
-	};
-struct beep_pattern network_error =
-	{
-	.beep_ms     = 250,
-	.silence_ms  = 250,
-	.cycle_count = 4,
-	.options     = RED_ALWAYS,
-	};
-struct beep_pattern packet_error =
-	{
-	.beep_ms     = 250,
-	.silence_ms  = 250,
-	.cycle_count = 8,
-	.options     = RED_ALWAYS,
-	};
-
-unsigned char http_request(unsigned char *request, struct cJSON **result, char *rand, unsigned char rand_len)
-	{
-	char body[BODY_SZ];
-	EthernetClient ec;
-	HttpClient hc(ec);
-	int err, body_len;
-	struct cJSON *new_nonce;
-	unsigned long start, l;
-	unsigned char i;
-	
-	l = strlen(request);
-	log_msg("Request: %s", request);
-
-	hc.beginRequest();
-	hc.post("intweb.at.hive13.org", "/api/access");
-	hc.flush();
-	hc.sendHeader("Content-Type", "application/json");
-	hc.flush();
-	hc.sendHeader("Content-Length", l);
-	hc.flush();
-	hc.write(request, l);
-	hc.flush();
-	free(request);
-
-	err = hc.responseStatusCode();
-	if (err != 200)
-		return RESPONSE_BAD_HTTP;
-	body_len = hc.contentLength();
-	if (body_len + 1 > BODY_SZ)
-		return RESPONSE_BAD_HTTP;
-
-	if (hc.skipResponseHeaders() > 0)
-		{
-		Serial.println("Header error.");
-		return RESPONSE_BAD_HTTP;
-		}
-
-	start = millis();
-	l = 0;
-	while ((hc.connected() || hc.available()) && ((millis() - start) < NETWORK_TIMEOUT))
-		{
-		if (hc.available())
-			{
-			body[l++] = hc.read();
-			body_len--;
-			start = millis();
-			}
-		else
-			delay(NETWORK_DELAY);
-		}
-	body[l++] = 0;
-	hc.stop();
-	log_msg("Response: %s", body);
-
-	i = parse_response(body, result, key, sizeof(key), rand, rand_len);
-	if (i == RESPONSE_GOOD)
-		{
-		new_nonce = cJSON_GetObjectItem(*result, "new_nonce");
-		memmove(nonce, new_nonce->valuestring, 32);
-		nonce[32] = 0;
-		log_msg("Good response!");
-		}
-	else if (i == RESPONSE_BAD_NONCE)
-		{
-		log_msg("Invalid nonce.");
-		update_nonce();
-		}
-	else
-		{
-		log_msg("Error: %i", i);
-		beep_it(&packet_error);
-		}
-	return i;
-	}
-
-unsigned char check_badge(unsigned long badge_num, void (*success)(void))
-	{
-	static unsigned long scan_count = 0;
-	char *out;
-	struct cJSON *result, *json;
-	unsigned long start = millis();
-	unsigned char rv[2 * sizeof(unsigned long)];
-	unsigned char i;
-
-	memcpy(rv, &start, sizeof(unsigned long));
-	memcpy(rv + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
-	scan_count++;
-
-	out = get_request(badge_num, "access", location, location, key, sizeof(key), rv, sizeof(rv), nonce);
-	i = http_request(out, &result, rv, sizeof(rv));
-	
-	if (i == RESPONSE_GOOD)
-		{
-		json = cJSON_GetObjectItem(result, "access");
-		if (json && json->type == cJSON_True)
-			{
-			if (success)
-				success();
-			i = 1;
-			}
-		else
-			{
-			log_msg("Access denied.");
-			beep_it(&invalid_card);
-			i = 0;
-			}
-		cJSON_Delete(result);
-		return i;
-		}
-	return 0;
-	}
 
 WIEGAND wg;
 byte mac[]     = {0x48, 0x49, 0x56, 0x45, 0x31, 0x33};
