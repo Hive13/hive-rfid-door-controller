@@ -19,27 +19,41 @@
 
 char *location = "main_door";
 char key[]     = {'Y', 'o', 'u', ' ', 'l', 'o', 's', 't', ' ', 't', 'h', 'e', 'G', 'a', 'm', 'e'};
-
-char check_badge(unsigned long badge)
+static char nonce[33];
+struct beep_pattern invalid_card =
 	{
-	static unsigned long scan_count = 0;
-	char body[BODY_SZ], *out;
+	.beep_ms     = 1000,
+	.silence_ms  = 0,
+	.cycle_count = 1,
+	.options     = RED_ALWAYS,
+	};
+struct beep_pattern network_error =
+	{
+	.beep_ms     = 250,
+	.silence_ms  = 250,
+	.cycle_count = 4,
+	.options     = RED_ALWAYS,
+	};
+struct beep_pattern packet_error =
+	{
+	.beep_ms     = 250,
+	.silence_ms  = 250,
+	.cycle_count = 8,
+	.options     = RED_ALWAYS,
+	};
+
+unsigned char http_request(unsigned char *request, struct cJSON **result, char *rand, unsigned char rand_len)
+	{
+	char body[BODY_SZ];
 	EthernetClient ec;
 	HttpClient hc(ec);
 	int err, body_len;
-	struct cJSON *resp, *cs;
-	unsigned long start = millis(), l;
-	unsigned char rv[2 * sizeof(unsigned long)];
-	unsigned char rc;
-
-	memcpy(rv, &start, sizeof(unsigned long));
-	memcpy(rv + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
-	scan_count++;
-
-	out = get_request(badge, "access", location, location, key, sizeof(key), rv, sizeof(rv));
-	l = strlen(out);
-	Serial.print("Sending ");
-	Serial.println(out);
+	struct cJSON *new_nonce;
+	unsigned long start, l;
+	unsigned char i;
+	
+	l = strlen(request);
+	log_msg("Request: %s", request);
 
 	hc.beginRequest();
 	hc.post("intweb.at.hive13.org", "/api/access");
@@ -48,9 +62,9 @@ char check_badge(unsigned long badge)
 	hc.flush();
 	hc.sendHeader("Content-Length", l);
 	hc.flush();
-	hc.write(out, l);
+	hc.write(request, l);
 	hc.flush();
-	free(out);
+	free(request);
 
 	err = hc.responseStatusCode();
 	if (err != 200)
@@ -80,22 +94,64 @@ char check_badge(unsigned long badge)
 		}
 	body[l++] = 0;
 	hc.stop();
-	Serial.print("Body: ");
-	Serial.println(body);
+	log_msg("Response: %s", body);
 
-	rc = parse_response(body, &resp, key, sizeof(key), rv, sizeof(rv));
-
-	if (rc != RESPONSE_GOOD)
-		return rc;
-
-	if (!(cs = cJSON_GetObjectItem(resp, "access")) || cs->type != cJSON_True)
+	i = parse_response(body, result, key, sizeof(key), rand, rand_len);
+	if (i == RESPONSE_GOOD)
 		{
-		cJSON_Delete(resp);
-		return RESPONSE_ACCESS_DENIED;
+		new_nonce = cJSON_GetObjectItem(*result, "new_nonce");
+		memmove(nonce, new_nonce->valuestring, 32);
+		nonce[32] = 0;
+		log_msg("Good response!");
 		}
+	else if (i == RESPONSE_BAD_NONCE)
+		{
+		log_msg("Invalid nonce.");
+		update_nonce();
+		}
+	else
+		{
+		log_msg("Error: %i", i);
+		beep_it(&packet_error);
+		}
+	return i;
+	}
 
-	cJSON_Delete(resp);
-	return RESPONSE_GOOD;
+unsigned char check_badge(unsigned long badge_num, void (*success)(void))
+	{
+	static unsigned long scan_count = 0;
+	char *out;
+	struct cJSON *result, *json;
+	unsigned long start = millis();
+	unsigned char rv[2 * sizeof(unsigned long)];
+	unsigned char i;
+
+	memcpy(rv, &start, sizeof(unsigned long));
+	memcpy(rv + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
+	scan_count++;
+
+	out = get_request(badge_num, "access", location, location, key, sizeof(key), rv, sizeof(rv), nonce);
+	i = http_request(out, &result, rv, sizeof(rv));
+	
+	if (i == RESPONSE_GOOD)
+		{
+		json = cJSON_GetObjectItem(result, "access");
+		if (json && json->type == cJSON_True)
+			{
+			if (success)
+				success();
+			i = 1;
+			}
+		else
+			{
+			log_msg("Access denied.");
+			beep_it(&invalid_card);
+			i = 0;
+			}
+		cJSON_Delete(result);
+		return i;
+		}
+	return 0;
 	}
 
 WIEGAND wg;
@@ -200,12 +256,11 @@ void setup()
 
 void loop()
 	{
-	char badge_code;
+	unsigned char badge_ok, cached;
 	char buffer[UDP_TX_PACKET_MAX_SIZE];
 	unsigned long badgeID = 0;
 	unsigned char type;
 	unsigned long time = 0;
-	boolean cached = false;
 	unsigned char i;
 	int sz;
 
@@ -235,16 +290,15 @@ void loop()
 		if(usersCache[i] == badgeID && usersCache[i] > 0)
 			{
 			log_msg("Verified via cache ok to open door...");
-			cached = true;
+			cached = 1;
 			open_door();
 			break;
 			}
 		}
 
-	badge_code = check_badge(badgeID);
-	log_msg("Response from check_badge(): %d", badge_code);
+	badge_ok = check_badge(badgeID, NULL);
 
-	if (badge_code == RESPONSE_GOOD)
+	if (badge_ok)
 		{
 		// We only need to open the door here if it wasn't opened from checking the cache.
 		if (!cached)
@@ -262,7 +316,7 @@ void loop()
 				}
 			}
 		}
-	else if (cached == true)
+	else if (cached)
 		{
 		// remove them from the cached list as they are not allowed in
 		for (i = 0; i < (sizeof(usersCache) / sizeof(usersCache[0])); i++)
