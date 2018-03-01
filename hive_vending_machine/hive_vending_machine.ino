@@ -1,13 +1,6 @@
 #include <Ethernet.h>
 // https://github.com/monkeyboard/Wiegand-Protocol-Library-for-Arduino
 #include <Wiegand.h>
-// The b64 and HttpClient libraries are both in this repository:
-// https://github.com/amcewen/HttpClient
-#include <b64.h>
-#include <HttpClient.h>
-// https://github.com/PaulStoffregen/OneWire
-#include <OneWire.h>
-#include <Adafruit_NeoPixel.h>
 
 #include "leds.h"
 #include "soda_temp.h"
