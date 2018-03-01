@@ -16,7 +16,11 @@
 #include "API.h"
 #include "schedule.h"
 #include "log.h"
+#ifdef SODA_MACHINE
+#include "leds.h"
+#else
 #include "ui.h"
+#endif
 
 #ifndef PLATFORM_ARDUINO
 #include "wifi.h"
@@ -24,6 +28,9 @@
 #define RANDOM_REG32  ESP8266_DREG(0x20E44)
 #endif
 
+#ifdef SODA_MACHINE
+#define beep_it(x)
+#else
 struct beep_pattern invalid_card =
 	{
 	.beep_ms     = 1000,
@@ -45,6 +52,7 @@ struct beep_pattern packet_error =
 	.cycle_count = 8,
 	.options     = RED_ALWAYS,
 	};
+#endif
 
 static char *location    = LOCATION;
 static char *device      = DEVICE;
@@ -65,6 +73,9 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 	unsigned long start, l;
 	unsigned char i;
 	
+#ifdef SODA_MACHINE
+	leds_busy();
+#endif
 	l = strlen(request);
 	log_msg("Request: %s", request);
 
@@ -206,11 +217,32 @@ void get_rand(char *rand)
 	}
 #endif
 
+unsigned char can_vend(unsigned long badge)
+	{
+	unsigned char *out;
+	struct cJSON *result, *json;
+	unsigned char i;
+	char rand[RAND_SIZE];
+	
+	get_rand(rand);
+	out = (unsigned char *)get_request(badge, "vend", NULL, device, key, sizeof(key), rand, sizeof(rand), NULL);
+	i = http_request(out, &result, rand, sizeof(rand));
+
+	if (i == RESPONSE_GOOD)
+		{
+		json = cJSON_GetObjectItem(result, "vend");
+		if (json && json->type == cJSON_True)
+			return RESPONSE_GOOD;
+		else
+			return RESPONSE_ACCESS_DENIED;
+		}
+	return i;
+	}
+
 unsigned char check_badge(unsigned long badge_num, void (*success)(void))
 	{
 	struct cJSON *json, *result;
 	unsigned char i;
-	unsigned long r;
 	unsigned char *out;
 	char rand[RAND_SIZE];
 	
@@ -239,7 +271,7 @@ unsigned char check_badge(unsigned long badge_num, void (*success)(void))
 	return 0;
 	}
 
-void log_temp(unsigned long temp)
+void log_temp(unsigned long temp, char *name)
 	{
 	struct cJSON *json, *result;
 	unsigned char i;
@@ -247,7 +279,7 @@ void log_temp(unsigned long temp)
 	char rand[RAND_SIZE];
 
 	json = cJSON_CreateObject();
-	cJSON_AddItemToObjectCS(json, "item", cJSON_CreateString("annex"));
+	cJSON_AddItemToObjectCS(json, "item", cJSON_CreateString(name));
 	cJSON_AddItemToObjectCS(json, "temperature", cJSON_CreateNumber(temp));
 	
 	get_rand(rand);

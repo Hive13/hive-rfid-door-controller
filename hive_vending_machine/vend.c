@@ -9,9 +9,6 @@
 #include "http.h"
 #include "schedule.h"
 
-unsigned char key[] = {'S', 'o', 'd', 'a', ' ', 'M', 'a', 'c', 'h', 'i', 'n', 'e', '!', '!', '!', '!'};
-char *device = "soda_machine";
-
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and a diet flag.
 struct soda sodas[] = {
@@ -254,49 +251,3 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 	set_vend(pressed);
 	return SCHEDULE_REDO;
 	}
-
-signed char can_vend(unsigned long badge)
-	{
-	static unsigned long scan_count = 0;
-	char *body, *out;
-	struct cJSON *resp, *cs;
-	unsigned char rv[2 * sizeof(unsigned long)];
-	unsigned char rc;
-	unsigned long start = millis();
-
-	memcpy(rv, &start, sizeof(unsigned long));
-	memcpy(rv + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
-	scan_count++;
-
-	out = get_request(badge, "vend", NULL, device, key, sizeof(key), rv, sizeof(rv));
-	log_msg("Sending %s", out);
-
-	rc = http_get_json("intweb.at.hive13.org", "/api/access", out, &body);
-	free(out);
-
-	if (rc != RESPONSE_GOOD)
-		{
-		log_msg("GET failed: %hhd", rc);
-		return rc;
-		}
-
-	log_msg("Body: %s", body);
-
-	rc = parse_response(body, &resp, key, sizeof(key), rv, sizeof(rv));
-	free(body);
-
-	log_msg("rc: %hhd", rc);
-	if (rc != RESPONSE_GOOD)
-		return rc;
-
-	if (!(cs = cJSON_GetObjectItem(resp, "vend")) || cs->type != cJSON_True)
-		{
-		log_msg("Didn't get a vend response back.");
-		cJSON_Delete(resp);
-		return RESPONSE_ACCESS_DENIED;
-		}
-
-	cJSON_Delete(resp);
-	return RESPONSE_GOOD;
-	}
-
