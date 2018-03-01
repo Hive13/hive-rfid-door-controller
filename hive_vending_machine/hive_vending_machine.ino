@@ -15,7 +15,6 @@ static volatile unsigned char sold_out_t = 0;
 static volatile char sold_out_changed = 0;
 static volatile unsigned long sold_out_changed_at = 0;
 unsigned char sold_out = 0;
-void hmac_test(void);
 
 ISR(PCINT2_vect)
 	{
@@ -30,7 +29,6 @@ char handle_ethernet(void *ptr, unsigned long *t, unsigned long m)
 
 	return SCHEDULE_REDO;
 	}
-
 
 void setup()
 	{
