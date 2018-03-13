@@ -109,13 +109,16 @@ void setup()
 
 	// initialize the usersCache array as all 0.
 	memset(usersCache, 0, sizeof(usersCache));
+	
+	update_nonce();
+	update_nonce();
 
 	beep_it(&start_of_day);
 	}
 
 void loop()
 	{
-	unsigned char badge_ok, cached;
+	unsigned char badge_ok, cached = 0;
 	char buffer[UDP_TX_PACKET_MAX_SIZE];
 	unsigned long badgeID = 0;
 	unsigned char type;
