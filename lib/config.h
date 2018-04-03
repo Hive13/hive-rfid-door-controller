@@ -7,7 +7,9 @@
 
 #define DOOR_PIN  6
 #define LIGHT_PIN 13
+#ifndef BEEP_PIN
 #define BEEP_PIN  12
+#endif
 #define OPEN_PIN  A0
 #define D0_PIN    2
 #define D1_PIN    3
@@ -23,7 +25,9 @@
 
 #define DOOR_PIN  D4
 #define LIGHT_PIN D0
+#ifndef BEEP_PIN
 #define BEEP_PIN  D8
+#endif
 #define OPEN_PIN  D3
 #define D0_PIN    D1
 #define D1_PIN    D2

@@ -225,7 +225,7 @@ unsigned char can_vend(unsigned long badge)
 	char rand[RAND_SIZE];
 	
 	get_rand(rand);
-	out = (unsigned char *)get_request(badge, "vend", NULL, device, key, sizeof(key), rand, sizeof(rand), NULL);
+	out = (unsigned char *)get_request(badge, "vend", NULL, device, key, sizeof(key), rand, sizeof(rand), nonce);
 	i = http_request(out, &result, rand, sizeof(rand));
 
 	if (i == RESPONSE_GOOD)
@@ -291,6 +291,42 @@ void log_temp(unsigned long temp, char *name)
 		json = cJSON_GetObjectItem(result, "error");
 		out = json ? (unsigned char *)json->valuestring : NULL;
 		log_msg("Temperature recorded: %s", out);
+		cJSON_Delete(result);
+		}
+	}
+
+void update_soda_status(unsigned char sold_out_mask)
+	{
+	struct cJSON *json, *item, *prev, *result;
+	unsigned char i;
+	unsigned char *out;
+	char rand[RAND_SIZE];
+
+	json = cJSON_CreateArray();
+	for (i = 0; i < 8; i++)
+		{
+		item = cJSON_CreateObject();
+		cJSON_AddItemToObjectCS(item, "slot", cJSON_CreateNumber(i + 1));
+		cJSON_AddItemToObjectCS(item, "sold_out", cJSON_CreateBool(sold_out_mask & (1 << i)));
+		if (!i)
+			json->child = item;
+		else
+			{
+			prev->next = item;
+			item->prev = prev;
+			}
+		prev = item;
+		}
+	
+	get_rand(rand);
+	out = (unsigned char *)soda_status(json, device, key, sizeof(key), rand, sizeof(rand), nonce);
+	i = http_request(out, &result, rand, sizeof(rand));
+
+	if (i == RESPONSE_GOOD)
+		{
+		json = cJSON_GetObjectItem(result, "error");
+		out = json ? (unsigned char *)json->valuestring : NULL;
+		log_msg("Sold out updated: %s", out);
 		cJSON_Delete(result);
 		}
 	}
