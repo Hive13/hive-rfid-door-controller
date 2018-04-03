@@ -32,13 +32,15 @@ char update_sold_out(volatile unsigned char *ptr, unsigned long *t, unsigned lon
 	{
 	sold_out = sold_out_t;
 	log_msg("Sold out: %02hhX", sold_out);
+	update_soda_status(sold_out);
+	
+	return SCHEDULE_DONE;
 	}
 
 ISR(PCINT2_vect)
 	{
-	if (sold_out_schedule)
-		schedule_cancel(sold_out_schedule);
-	schedule(millis() + 250, update_sold_out, &sold_out_t);
+	schedule_cancel(sold_out_schedule);
+	sold_out_schedule = schedule(millis() + 250, update_sold_out, &sold_out_t);
 	sold_out_t = PINK;
 	}
 
@@ -133,6 +135,7 @@ void handle_vend(unsigned long code)
 		{
 		case RESPONSE_GOOD:
 			log_msg("Vending.");
+			leds_all(Color(0, 255, 0));
 			digitalWrite(VEND_PIN, LOW);
 			digitalWrite(WIEGAND_LIGHT_PIN, HIGH);
 			digitalWrite(BEEP_PIN, LOW);
@@ -141,6 +144,7 @@ void handle_vend(unsigned long code)
 			digitalWrite(BEEP_PIN, HIGH);
 			delay(900);
 			digitalWrite(VEND_PIN, HIGH);
+			leds_off();
 			return;
 
 		case RESPONSE_ACCESS_DENIED:
