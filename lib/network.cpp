@@ -7,6 +7,7 @@
 #include "network.h"
 #include "log.h"
 #include "schedule.h"
+#include "http.h"
 
 #ifdef PLATFORM_ARDUINO
 static byte mac[] = MAC;
@@ -31,7 +32,10 @@ void network_init(void)
 		delay(1000);
 		}
 	schedule(0, handle_ethernet, NULL);
-
+	
+	/* Do it twice for Arduino because the first request times out. */
+	update_nonce();
 #else
 #endif
+	update_nonce();
 	}
