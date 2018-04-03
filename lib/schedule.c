@@ -82,9 +82,19 @@ void *schedule(unsigned long time, time_handler *func, void *ptr)
 
 void run_schedule(void)
 	{
+#ifdef ARDUINO_AVR_MEGA2560
+	unsigned int oldREG;
+#endif
 	struct task *t = task_chain, *p;
 	unsigned long m = millis();
 	char ret;
+
+#ifdef ARDUINO_AVR_MEGA2560
+	oldREG = SREG;
+	cli();
+#else
+	noInterrupts();
+#endif
 
 	while (t)
 		{
@@ -111,4 +121,9 @@ void run_schedule(void)
 		else
 			t = t->next;
 		}
+#ifdef ARDUINO_AVR_MEGA2560
+	SREG = oldREG;
+#else
+	interrupts();
+#endif
 	}
