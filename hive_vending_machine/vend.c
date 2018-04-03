@@ -24,7 +24,23 @@ struct soda sodas[] = {
 
 unsigned char soda_count = SODA_COUNT;
 static unsigned char larsen_on = 0;
-extern unsigned char sold_out;
+unsigned char sold_out = 0;
+static volatile unsigned char sold_out_t = 0;
+static void *sold_out_schedule = NULL;
+
+char update_sold_out(volatile unsigned char *ptr, unsigned long *t, unsigned long m)
+	{
+	sold_out = sold_out_t;
+	log_msg("Sold out: %02hhX", sold_out);
+	}
+
+ISR(PCINT2_vect)
+	{
+	if (sold_out_schedule)
+		schedule_cancel(sold_out_schedule);
+	schedule(millis() + 250, update_sold_out, &sold_out_t);
+	sold_out_t = PINK;
+	}
 
 void set_vend(char c)
 	{
@@ -174,6 +190,13 @@ void vend_init(void)
 		pinMode(sodas[i].relay_pin, OUTPUT);
 		digitalWrite(sodas[i].relay_pin, HIGH);
 		}
+	
+	/* Set up the sold out pins */
+	cli();
+	PCICR |= 1 << PCIE2;
+	PCMSK2 = 0xFF;
+	sold_out = PINK;
+	sei();
 
 	schedule(0, vend_check, NULL);
 	}
