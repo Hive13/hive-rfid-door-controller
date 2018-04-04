@@ -26,46 +26,17 @@ struct beep_pattern init_wg =
 	.cycle_count = 2,
 	.options     = RED_ALWAYS,
 	};
-struct beep_pattern init_log =
-	{
-	.beep_ms     = 100,
-	.silence_ms  = 100,
-	.cycle_count = 3,
-	.options     = RED_ALWAYS,
-	};
-struct beep_pattern init_temp =
-	{
-	.beep_ms     = 100,
-	.silence_ms  = 100,
-	.cycle_count = 4,
-	.options     = RED_ALWAYS,
-	};
-struct beep_pattern init_wifi =
-	{
-	.beep_ms     = 100,
-	.silence_ms  = 100,
-	.cycle_count = 5,
-	.options     = RED_ALWAYS,
-	};
 
 void setup(void)
 	{
-	unsigned char i = LOW;
 	ui_init();
 	
 	beep_it(&init_wg);
 	wg.begin(D0_PIN, D0_PIN, D1_PIN, D1_PIN);
-	delay(1000);
-	beep_it(&init_log);
 	log_begin(115200);
-	delay(1000);
 
-	beep_it(&init_temp);
 	access_temperature_init();
-	delay(1000);
-	beep_it(&init_wifi);
 	wifi_init();
-	delay(1000);
 	update_nonce();
 
 	beep_it(&start_of_day);
