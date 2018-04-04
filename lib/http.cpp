@@ -118,6 +118,9 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 		}
 	body[l++] = 0;
 	hc.stop();
+#ifdef SODA_MACHINE
+	leds_off();
+#endif
 	log_msg("Response: %s", body);
 
 	i = parse_response(body, result, key, sizeof(key), rand, rand_len);
@@ -235,6 +238,7 @@ unsigned char can_vend(unsigned long badge)
 			return RESPONSE_GOOD;
 		else
 			return RESPONSE_ACCESS_DENIED;
+		cJSON_Delete(result);
 		}
 	return i;
 	}
