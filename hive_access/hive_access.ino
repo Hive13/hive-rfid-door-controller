@@ -8,7 +8,7 @@
 #include "log.h"
 #include "http.h"
 #include "ui.h"
-#include "wifi.h"
+#include "network.h"
 
 static WIEGAND wg;
 
@@ -36,7 +36,7 @@ void setup(void)
 	log_begin(115200);
 
 	access_temperature_init();
-	wifi_init();
+	network_init();
 	update_nonce();
 
 	beep_it(&start_of_day);
