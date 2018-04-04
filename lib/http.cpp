@@ -59,13 +59,30 @@ static char *device      = DEVICE;
 static char key[]        = KEY;
 static char nonce[33];
 
-#ifdef PLATFORM_ARDUINO
-#define RAND_SIZE (2 * sizeof(unsigned long))
-#define BODY_SZ 1024
+char *get_signed_packet(struct cJSON *data)
+	{	
+	struct cJSON *root = cJSON_CreateObject();
+	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
+	char *out;
+	
+	get_hash(data, sha_buf, key, sizeof(key));
 
-unsigned char http_request(unsigned char *request, struct cJSON **result, char *rand, unsigned char rand_len)
+	print_hex(sha_buf_out, sha_buf, SHA512_SZ);
+	
+	cJSON_AddItemToObjectCS(root, "data", data);
+	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(device));
+	cJSON_AddItemToObjectCS(root, "checksum", cJSON_CreateString(sha_buf_out));
+	
+	out = cJSON_Print(root);
+	cJSON_Delete(root);
+
+	return out;
+	}
+
+#ifdef PLATFORM_ARDUINO
+unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand)
 	{
-	char body[BODY_SZ];
+	char *body, *request;
 	EthernetClient ec;
 	HttpClient hc(ec);
 	int err, body_len;
@@ -76,6 +93,8 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 #ifdef SODA_MACHINE
 	leds_busy();
 #endif
+
+	request = get_signed_packet(data);
 	l = strlen(request);
 	log_msg("Request: %s", request);
 
@@ -94,8 +113,7 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 	if (err != 200)
 		return RESPONSE_BAD_HTTP;
 	body_len = hc.contentLength();
-	if (body_len + 1 > BODY_SZ)
-		return RESPONSE_BAD_HTTP;
+	body = malloc(body_len + 1);
 
 	if (hc.skipResponseHeaders() > 0)
 		{
@@ -110,7 +128,6 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 		if (hc.available())
 			{
 			body[l++] = hc.read();
-			body_len--;
 			start = millis();
 			}
 		else
@@ -123,7 +140,8 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 #endif
 	log_msg("Response: %s", body);
 
-	i = parse_response(body, result, key, sizeof(key), rand, rand_len);
+	i = parse_response(body, result, key, sizeof(key), rand, RAND_SIZE);
+	free(body);
 	if (i == RESPONSE_GOOD)
 		{
 		new_nonce = cJSON_GetObjectItem(*result, "new_nonce");
@@ -157,14 +175,16 @@ void get_rand(char *rand)
 #ifdef PLATFORM_ESP
 static const char host[] = HTTP_HOST;
 
-unsigned char http_request(unsigned char *request, struct cJSON **result, char *rand, unsigned char rand_len)
+unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand)
 	{
 	int code;
 	HTTPClient http;
 	String body;
 	unsigned char i;
 	struct cJSON *new_nonce;
+	char *request;
 	
+	request = get_signed_packet(data);
 	log_msg("Request: %s", request);
 
 	http.begin(host);
@@ -183,7 +203,7 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 
 	body = http.getString();
 	log_msg("Response: %s", body.c_str());
-	i = parse_response((char *)body.c_str(), result, key, sizeof(key), rand, rand_len);
+	i = parse_response((char *)body.c_str(), result, key, sizeof(key), rand, RAND_SIZE);
 	if (i == RESPONSE_GOOD)
 		{
 		new_nonce = cJSON_GetObjectItem(*result, "new_nonce");
@@ -204,14 +224,12 @@ unsigned char http_request(unsigned char *request, struct cJSON **result, char *
 	return i;
 	}
 
-#define RAND_SIZE 16
-
 void get_rand(char *rand)
 	{
 	unsigned char i;
 	unsigned long r;
 	
-	for (i = 0; i < sizeof(rand); i++)
+	for (i = 0; i < RAND_SIZE; i++)
 		{
 		if (!(i % 4))
 			r = RANDOM_REG32;
@@ -220,16 +238,40 @@ void get_rand(char *rand)
 	}
 #endif
 
+void add_random_response(struct cJSON *data, char *rand)
+	{
+	struct cJSON *json, *prev, *ran = cJSON_CreateArray();
+	unsigned char i;
+	
+	get_rand(rand);
+	for (i = 0; i < RAND_SIZE; i++)
+		{
+		json = cJSON_CreateNumber((long)rand[i]);
+		if (!i)
+			ran->child = json;
+		else
+			{
+			prev->next = json;
+			json->prev = prev;
+			}
+		prev = json;
+		}
+	cJSON_AddItemToObjectCS(data, "random_response", ran);
+	}
+
 unsigned char can_vend(unsigned long badge)
 	{
 	unsigned char *out;
-	struct cJSON *result, *json;
+	struct cJSON *result, *json, *data = cJSON_CreateObject();
 	unsigned char i;
 	char rand[RAND_SIZE];
-	
-	get_rand(rand);
-	out = (unsigned char *)get_request(badge, "vend", NULL, device, key, sizeof(key), rand, sizeof(rand), nonce);
-	i = http_request(out, &result, rand, sizeof(rand));
+
+	cJSON_AddItemToObjectCS(data, "badge",           cJSON_CreateNumber(badge));
+	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
+	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("vend"));
+	add_random_response(data, rand);
+	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
+	i = http_request(data, &result, rand);
 
 	if (i == RESPONSE_GOOD)
 		{
@@ -245,14 +287,17 @@ unsigned char can_vend(unsigned long badge)
 
 unsigned char check_badge(unsigned long badge_num, void (*success)(void))
 	{
-	struct cJSON *json, *result;
+	struct cJSON *json, *result, *data = cJSON_CreateObject();
 	unsigned char i;
-	unsigned char *out;
 	char rand[RAND_SIZE];
-	
-	get_rand(rand);
-	out = (unsigned char *)get_request(badge_num, "access", location, device, key, sizeof(key), rand, sizeof(rand), nonce);
-	i = http_request(out, &result, rand, sizeof(rand));
+
+	cJSON_AddItemToObjectCS(data, "badge",           cJSON_CreateNumber(badge_num));
+	cJSON_AddItemToObjectCS(data, "item",            cJSON_CreateString(location));
+	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
+	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("access"));
+	add_random_response(data, rand);
+	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
+	i = http_request(data, &result, rand);
 
 	if (i == RESPONSE_GOOD)
 		{
@@ -277,7 +322,7 @@ unsigned char check_badge(unsigned long badge_num, void (*success)(void))
 
 void log_temp(unsigned long temp, char *name)
 	{
-	struct cJSON *json, *result;
+	struct cJSON *json, *result, *data = cJSON_CreateObject();
 	unsigned char i;
 	unsigned char *out;
 	char rand[RAND_SIZE];
@@ -286,9 +331,12 @@ void log_temp(unsigned long temp, char *name)
 	cJSON_AddItemToObjectCS(json, "item", cJSON_CreateString(name));
 	cJSON_AddItemToObjectCS(json, "temperature", cJSON_CreateNumber(temp));
 	
-	get_rand(rand);
-	out = (unsigned char *)log_data(json, device, key, sizeof(key), rand, sizeof(rand), nonce);
-	i = http_request(out, &result, rand, sizeof(rand));
+	cJSON_AddItemToObjectCS(data, "log_data",        json);
+	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
+	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("log"));
+	add_random_response(data, rand);
+	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
+	i = http_request(data, &result, rand);
 
 	if (i == RESPONSE_GOOD)
 		{
@@ -301,7 +349,7 @@ void log_temp(unsigned long temp, char *name)
 
 void update_soda_status(unsigned char sold_out_mask)
 	{
-	struct cJSON *json, *item, *prev, *result;
+	struct cJSON *json, *item, *prev, *result, *data = cJSON_CreateObject();
 	unsigned char i;
 	unsigned char *out;
 	char rand[RAND_SIZE];
@@ -322,9 +370,13 @@ void update_soda_status(unsigned char sold_out_mask)
 		prev = item;
 		}
 	
-	get_rand(rand);
-	out = (unsigned char *)soda_status(json, device, key, sizeof(key), rand, sizeof(rand), nonce);
-	i = http_request(out, &result, rand, sizeof(rand));
+	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
+	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("soda_status"));
+	cJSON_AddItemToObjectCS(data, "soda_status",     json);
+	add_random_response(data, rand);
+	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
+	
+	i = http_request(data, &result, rand);
 
 	if (i == RESPONSE_GOOD)
 		{
@@ -337,16 +389,15 @@ void update_soda_status(unsigned char sold_out_mask)
 
 void update_nonce(void)
 	{
-	struct cJSON *result;
+	struct cJSON *result, *data = cJSON_CreateObject();
 	unsigned char i;
-	unsigned char *out;
 	char rand[RAND_SIZE];
-	
-	get_rand(rand);
-	out = (unsigned char *)get_nonce(device, key, sizeof(key), rand, sizeof(rand));
-	i = http_request(out, &result, rand, sizeof(rand));
+
+	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("get_nonce"));
+	add_random_response(data, rand);
+	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
+	i = http_request(data, &result, rand);
 
 	if (i == RESPONSE_GOOD)
 		cJSON_Delete(result);
 	}
-

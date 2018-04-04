@@ -12,6 +12,16 @@ void log_temp(unsigned long temp, char *name);
 void update_soda_status(unsigned char sold_out_mask);
 void update_nonce(void);
 unsigned char can_vend(unsigned long badge);
+char *get_signed_packet(struct cJSON *data);
+unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand);
+void add_random_response(struct cJSON *data, char *rand);
+
+#ifdef PLATFORM_ARDUINO
+#define RAND_SIZE (2 * sizeof(unsigned long))
+#endif
+#ifdef PLATFORM_ESP8266
+#define RAND_SIZE 16
+#endif
 
 #ifdef __cplusplus
 }
