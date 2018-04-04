@@ -5,7 +5,11 @@
 extern "C" {
 #endif
 
-void network_init();
+void network_init(void);
+
+#ifdef PLATFORM_ESP8266
+void wifi_error(void);
+#endif
 
 #ifdef __cplusplus
 }
