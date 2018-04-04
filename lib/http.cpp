@@ -1,6 +1,5 @@
 #include "config.h"
 
-#include <Wiegand.h>
 #ifdef PLATFORM_ARDUINO
 #include <Ethernet.h> 
 #include <b64.h>
@@ -16,16 +15,11 @@
 #include "API.h"
 #include "schedule.h"
 #include "log.h"
+#include "network.h"
 #ifdef SODA_MACHINE
 #include "leds.h"
 #else
 #include "ui.h"
-#endif
-
-#ifndef PLATFORM_ARDUINO
-#include "wifi.h"
-
-#define RANDOM_REG32  ESP8266_DREG(0x20E44)
 #endif
 
 #ifdef SODA_MACHINE
@@ -224,6 +218,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	return i;
 	}
 
+#define RANDOM_REG32  ESP8266_DREG(0x20E44)
 void get_rand(char *rand)
 	{
 	unsigned char i;
