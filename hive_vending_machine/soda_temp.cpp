@@ -1,3 +1,4 @@
+#include "config.h"
 #include <Arduino.h>
 
 #include "soda_temp.h"
