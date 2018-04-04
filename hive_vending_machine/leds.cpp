@@ -6,10 +6,8 @@
 #include "vend.h"
 
 #define LED_PIN   6
-#define LED_COUNT 8
 
 extern unsigned char soda_count;
-extern struct soda sodas[];
 extern unsigned char sold_out;
 
 static Adafruit_NeoPixel leds = Adafruit_NeoPixel(soda_count, LED_PIN, NEO_GRB | NEO_KHZ800);
