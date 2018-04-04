@@ -1,11 +1,9 @@
 #include <Arduino.h>
 
 #include "cJSON.h"
-#include "API.h"
 #include "log.h"
 #include "vend.h"
 #include "leds.h"
-#include "temp.h"
 #include "http.h"
 #include "schedule.h"
 
