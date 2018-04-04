@@ -62,7 +62,10 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	data  = cJSON_DetachItemFromObject(result, "data");
 
 	if (!data)
+		{
+		cJSON_Delete(result);
 		return RESPONSE_BAD_JSON;
+		}
 
 	get_hash(data, provided_cksum, key, key_len);
 
@@ -94,6 +97,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 		cJSON_Delete(response);
 		return RESPONSE_BAD_NONCE;
 		}
+	cJSON_Delete(response);
 	
 	response = cJSON_DetachItemFromObject(data, "response");
 	if (!response)
@@ -164,18 +168,11 @@ void get_hash(struct cJSON *data, char *sha_buf, char *key, unsigned char key_le
 	free(out);
 	}
 
-char *get_request(unsigned long badge_num, char *operation, char *location, char *device, char *key, unsigned char key_len, char *rv, unsigned char rv_len, char *nonce)
+void add_random_response(struct cJSON *data, char *rv, unsigned char rv_len)
 	{
-	struct cJSON
-		*data = cJSON_CreateObject(),
-		*root = cJSON_CreateObject(),
-		*ran  = cJSON_CreateArray(),
-		*json, *prev, *result;
+	struct cJSON *json, *prev, *ran = cJSON_CreateArray();
 	unsigned char i;
-	unsigned long r;
-	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
-	char *out;
-
+	
 	for (i = 0; i < rv_len; i++)
 		{
 		json = cJSON_CreateNumber((long)rv[i]);
@@ -188,6 +185,16 @@ char *get_request(unsigned long badge_num, char *operation, char *location, char
 			}
 		prev = json;
 		}
+	cJSON_AddItemToObjectCS(data, "random_response", ran);
+	}
+
+char *get_request(unsigned long badge_num, char *operation, char *location, char *device, char *key, unsigned char key_len, char *rv, unsigned char rv_len, char *nonce)
+	{
+	struct cJSON
+		*data = cJSON_CreateObject(),
+		*root = cJSON_CreateObject();
+	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
+	char *out;
 	
 	cJSON_AddItemToObjectCS(data, "badge",           cJSON_CreateNumber(badge_num));
 	if (location)
@@ -197,8 +204,8 @@ char *get_request(unsigned long badge_num, char *operation, char *location, char
 		cJSON_AddItemToObjectCS(data, "operation",     cJSON_CreateString(operation));
 	else
 		cJSON_AddItemToObjectCS(data, "operation",     cJSON_CreateString("access"));
+	add_random_response(data, rv, rv_len);
 		
-	cJSON_AddItemToObjectCS(data, "random_response", ran);
 	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
 	get_hash(data, sha_buf, key, key_len);
 
@@ -218,29 +225,12 @@ char *get_nonce(char *device, char *key, unsigned char key_len, char *rv, unsign
 	{
 	struct cJSON
 		*data = cJSON_CreateObject(),
-		*root = cJSON_CreateObject(),
-		*ran  = cJSON_CreateArray(),
-		*json, *prev, *result;
-	unsigned char i;
-	unsigned long r;
+		*root = cJSON_CreateObject();
 	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
 	char *out;
 
-	for (i = 0; i < rv_len; i++)
-		{
-		json = cJSON_CreateNumber((long)rv[i]);
-		if (!i)
-			ran->child = json;
-		else
-			{
-			prev->next = json;
-			json->prev = prev;
-			}
-		prev = json;
-		}
-
 	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("get_nonce"));
-	cJSON_AddItemToObjectCS(data, "random_response", ran);
+	add_random_response(data, rv, rv_len);
 	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
 	get_hash(data, sha_buf, key, key_len);
 
@@ -260,31 +250,14 @@ char *log_data(struct cJSON *l_data, char *device, char *key, unsigned char key_
 	{
 	struct cJSON
 		*data = cJSON_CreateObject(),
-		*root = cJSON_CreateObject(),
-		*ran  = cJSON_CreateArray(),
-		*json, *prev, *result;
-	unsigned char i;
-	unsigned long r;
+		*root = cJSON_CreateObject();
 	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
 	char *out;
-
-	for (i = 0; i < rv_len; i++)
-		{
-		json = cJSON_CreateNumber((long)rv[i]);
-		if (!i)
-			ran->child = json;
-		else
-			{
-			prev->next = json;
-			json->prev = prev;
-			}
-		prev = json;
-		}
 
 	cJSON_AddItemToObjectCS(data, "log_data",        l_data);
 	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
 	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("log"));
-	cJSON_AddItemToObjectCS(data, "random_response", ran);
+	add_random_response(data, rv, rv_len);
 	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
 	get_hash(data, sha_buf, key, key_len);
 
@@ -304,31 +277,14 @@ char *soda_status(struct cJSON *l_data, char *device, char *key, unsigned char k
 	{
 	struct cJSON
 		*data = cJSON_CreateObject(),
-		*root = cJSON_CreateObject(),
-		*ran  = cJSON_CreateArray(),
-		*json, *prev, *result;
-	unsigned char i;
-	unsigned long r;
+		*root = cJSON_CreateObject();
 	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
 	char *out;
 
-	for (i = 0; i < rv_len; i++)
-		{
-		json = cJSON_CreateNumber((long)rv[i]);
-		if (!i)
-			ran->child = json;
-		else
-			{
-			prev->next = json;
-			json->prev = prev;
-			}
-		prev = json;
-		}
-
-	cJSON_AddItemToObjectCS(data, "log_data",        l_data);
+	cJSON_AddItemToObjectCS(data, "soda_status",     l_data);
 	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
 	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("soda_status"));
-	cJSON_AddItemToObjectCS(data, "random_response", ran);
+	add_random_response(data, rv, rv_len);
 	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
 	get_hash(data, sha_buf, key, key_len);
 
