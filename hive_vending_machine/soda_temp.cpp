@@ -1,15 +1,8 @@
 #include <Arduino.h>
-#include <Ethernet.h>
-#include <HttpClient.h>
-#include <OneWire.h>
 
-#include "log.h"
-#include "API.h"
 #include "soda_temp.h"
 #include "temp.h"
 #include "leds.h"
-#include "schedule.h"
-#include "http.h"
 #include "cJSON.h"
 #include "schedule.h"
 
@@ -21,8 +14,6 @@ static uint32_t cur_temp = 0;
 char soda_temperature_sensor(struct temp_sensor *me, unsigned long temp)
 	{
 	cur_temp = temp;
-	if (me->log_name)
-		log_temp(temp, me->log_name);
 
 	/*if (temp <= COMPRESSOR_OFF)
 		{
