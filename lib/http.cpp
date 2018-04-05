@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <Arduino.h>
+
 #include "http.h"
 #include "cJSON.h"
 #include "API.h"
