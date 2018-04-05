@@ -87,9 +87,9 @@ void ui_init(void)
 	pinMode(LIGHT_PIN, OUTPUT);
 	pinMode(OPEN_PIN,  INPUT_PULLUP);
 
+	leds_init();
 	schedule(0, (time_handler *)led_flicker, NULL);
 	beep_it(BEEP_PATTERN_INIT);
-	leds_init();
 	}
 
 void beep_it(unsigned char pattern_idx)
@@ -109,7 +109,11 @@ void beep_it(unsigned char pattern_idx)
 	while (i < pattern->cycle_count)
 		{
 		if (i++)
+			{
+			leds_all(pattern->silence_color);
 			delay(pattern->silence_ms);
+			}
+		leds_all(pattern->beep_color);
 		if (light == RED_WITH_BEEP)
 			LIGHT_RED(LIGHT_PIN);
 		else if (light == GREEN_WITH_BEEP)
@@ -125,6 +129,7 @@ void beep_it(unsigned char pattern_idx)
 	
 	/* Always leave the light in this state when idle */
 	LIGHT_RED(LIGHT_PIN);
+	leds_off();
 	}
 
 static char close_door(struct door_open *d, unsigned long *t, unsigned long m)
