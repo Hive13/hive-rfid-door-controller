@@ -37,7 +37,6 @@ void setup(void)
 
 	access_temperature_init();
 	network_init();
-	update_nonce();
 
 	beep_it(&start_of_day);
 	log_msg("Ready to rumble!");
