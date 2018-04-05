@@ -47,8 +47,9 @@
 #define DOOR_OPEN_TIME 5000
 #define TEMPERATURE_UPDATE_INTERVAL 60000
 
-#define HTTP_HOST "http://intweb.at.hive13.org/api/access"
+#define HTTP_HOST       "http://intweb.at.hive13.org/api/access"
 #define NETWORK_TIMEOUT 5000
 #define NETWORK_DELAY   25
+#define MULTICAST_PORT  12595
 
 #endif /* __CONFIG_H */
