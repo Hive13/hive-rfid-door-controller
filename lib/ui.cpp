@@ -33,8 +33,8 @@ static struct beep_pattern patterns[] = {
 	.log_message   = "Network error",
 	},
 	{ /* BEEP_PATTERN_PACKET_ERROR */
-	.beep_ms       = 250,
-	.silence_ms    = 250,
+	.beep_ms       = 100,
+	.silence_ms    = 100,
 	.beep_color    = 0x00FF8000,
 	.silence_color = 0x00000000,
 	.cycle_count   = 8,
@@ -49,6 +49,15 @@ static struct beep_pattern patterns[] = {
 	.cycle_count   = 1,
 	.options       = RED_ALWAYS,
 	.log_message   = "Invalid card",
+	},
+	{ /* BEEP_PATTERN_NO_CREDITS */
+	.beep_ms       = 100,
+	.silence_ms    = 100,
+	.beep_color    = 0x00FF0000,
+	.silence_color = 0x00FF0000,
+	.cycle_count   = 5,
+	.options       = RED_ALWAYS,
+	.log_message   = "No credits",
 	},
 };
 

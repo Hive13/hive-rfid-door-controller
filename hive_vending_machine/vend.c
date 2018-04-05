@@ -1,9 +1,11 @@
+#include "config.h"
+
 #include <Arduino.h>
 
 #include "cJSON.h"
 #include "log.h"
 #include "vend.h"
-#include "leds.h"
+#include "ui.h"
 #include "http.h"
 #include "schedule.h"
 
@@ -124,47 +126,24 @@ void do_random_vend(unsigned char kind)
 
 void handle_vend(unsigned long code)
 	{
-	unsigned char rv;
-	unsigned char cnt = 0;
-
-	rv = can_vend(code);
+	unsigned char rv = can_vend(code);
 	
-	switch (rv)
+	if (rv == RESPONSE_ACCESS_DENIED)
 		{
-		case RESPONSE_GOOD:
-			log_msg("Vending.");
-			leds_all(Color(0, 255, 0));
-			digitalWrite(VEND_PIN, LOW);
-			digitalWrite(WIEGAND_LIGHT_PIN, HIGH);
-			digitalWrite(BEEP_PIN, LOW);
-			delay(100);
-			digitalWrite(WIEGAND_LIGHT_PIN, LOW);
-			digitalWrite(BEEP_PIN, HIGH);
-			delay(900);
-			digitalWrite(VEND_PIN, HIGH);
-			leds_off();
-			return;
-
-		case RESPONSE_ACCESS_DENIED:
-			log_msg("Didn't receive the OK to vend...");
-			leds_all(Color(255, 0, 0));
-			cnt = 5;
-			break;
-
-		default:
-			log_msg("Something went wrong with the network.");
-			leds_all(Color(255, 128, 0));
-			cnt = 10;
-			break;
+		beep_it(BEEP_PATTERN_NO_CREDITS);
+		return;
 		}
-
-	while (cnt--)
-		{
-		digitalWrite(BEEP_PIN, LOW);
-		delay(100);
-		digitalWrite(BEEP_PIN, HIGH);
-		delay(100);		
-		}
+	
+	log_msg("Vending.");
+	leds_all(Color(0, 255, 0));
+	digitalWrite(VEND_PIN, LOW);
+	digitalWrite(WIEGAND_LIGHT_PIN, HIGH);
+	digitalWrite(BEEP_PIN, LOW);
+	delay(100);
+	digitalWrite(WIEGAND_LIGHT_PIN, LOW);
+	digitalWrite(BEEP_PIN, HIGH);
+	delay(900);
+	digitalWrite(VEND_PIN, HIGH);
 	leds_off();
 	}
 
