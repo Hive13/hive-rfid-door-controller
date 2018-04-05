@@ -4,13 +4,53 @@
 #include "log.h"
 #include "schedule.h"
 
-static struct beep_pattern init =
-	{
-	.beep_ms     = 100,
-	.silence_ms  = 100,
-	.cycle_count = 2,
-	.options     = RED_ALWAYS,
-	};
+static struct beep_pattern patterns[] = {
+	{ /* BEEP_PATTERN_INIT */
+	.beep_ms       = 100,
+	.silence_ms    = 100,
+	.beep_color    = 0x00000000,
+	.silence_color = 0x00000000,
+	.cycle_count   = 2,
+	.options       = RED_ALWAYS,
+	.log_message   = "Initialized UI",
+	},
+	{ /* BEEP_PATTERN_START */
+	.beep_ms       = 400,
+	.silence_ms    = 150,
+	.beep_color    = 0x0000FF00,
+	.silence_color = 0x0000FF00,
+	.cycle_count   = 2,
+	.options       = RED_WITH_BEEP,
+	.log_message   = "Ready to Rumble!",
+	},
+	{ /* BEEP_PATTERN_NETWORK_ERROR */
+	.beep_ms       = 250,
+	.silence_ms    = 250,
+	.beep_color    = 0x00FF0000,
+	.silence_color = 0x00000000,
+	.cycle_count   = 4,
+	.options       = RED_ALWAYS,
+	.log_message   = "Network error",
+	},
+	{ /* BEEP_PATTERN_PACKET_ERROR */
+	.beep_ms       = 250,
+	.silence_ms    = 250,
+	.beep_color    = 0x00FF8000,
+	.silence_color = 0x00000000,
+	.cycle_count   = 8,
+	.options       = RED_ALWAYS,
+	.log_message   = "Packet error",
+	},
+	{ /* BEEP_PATTERN_INVALID_CARD */
+	.beep_ms       = 1000,
+	.silence_ms    = 0,
+	.beep_color    = 0x00FF0000,
+	.silence_color = 0x00000000,
+	.cycle_count   = 1,
+	.options       = RED_ALWAYS,
+	.log_message   = "Invalid card",
+	},
+};
 
 struct door_open
 	{
@@ -48,13 +88,18 @@ void ui_init(void)
 	pinMode(OPEN_PIN,  INPUT_PULLUP);
 
 	schedule(0, (time_handler *)led_flicker, NULL);
-	beep_it(&init);
+	beep_it(BEEP_PATTERN_INIT);
+	leds_init();
 	}
 
-void beep_it(struct beep_pattern *pattern)
+void beep_it(unsigned char pattern_idx)
 	{
 	unsigned int i = 0;
+	struct beep_pattern *pattern = patterns + pattern_idx;
 	register unsigned char light = pattern->options & 0x03;
+	
+	if (pattern->log_message)
+		log_msg("Beep: ", pattern->log_message);
 
 	if (light == GREEN_ALWAYS)
 		LIGHT_GREEN(LIGHT_PIN);

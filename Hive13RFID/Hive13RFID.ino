@@ -15,14 +15,6 @@ static IPAddress              mc_ip(239, 72, 49, 51);
 static unsigned long          usersCache[100];
 static volatile unsigned char doorbell_data = 5;
 
-struct beep_pattern start_of_day =
-	{
-	.beep_ms     = 200,
-	.silence_ms  = 100,
-	.cycle_count = 2,
-	.options     = RED_WITH_BEEP,
-	};
-
 /*
 	Buzz for 1000ms, sending out a packet every 250ms.
 	Wait an additional 4000ms before accepting the next
@@ -126,8 +118,8 @@ static void cache_access_handler(unsigned long code)
 
 void setup()
 	{
-	ui_init();
 	log_begin(115200);
+	ui_init();
 
 	digitalWrite(BUZZER_PIN, LOW);
 	pinMode(DOORBELL_PIN,    INPUT_PULLUP);
@@ -139,8 +131,7 @@ void setup()
 
 	memset(usersCache, 0, sizeof(usersCache));
 	scanner_init(cache_access_handler);
-
-	beep_it(&start_of_day);
+	beep_it(BEEP_PATTERN_START);
 	}
 
 void loop()

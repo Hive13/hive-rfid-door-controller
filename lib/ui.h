@@ -2,6 +2,7 @@
 #define __UI_H
 
 #include "config.h"
+#include "leds.h"
 
 #ifdef LIGHT_INV
 #define LIGHT_RED(pin)   digitalWrite((pin), LOW)
@@ -27,6 +28,13 @@
 #define RED_WITH_BEEP   2
 #define GREEN_WITH_BEEP 3
 
+
+#define BEEP_PATTERN_INIT  0
+#define BEEP_PATTERN_START 1
+#define BEEP_PATTERN_NETWORK_ERROR 2
+#define BEEP_PATTERN_PACKET_ERROR 3
+#define BEEP_PATTERN_INVALID_CARD 4
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,11 +43,14 @@ struct beep_pattern
 	{
 	unsigned long beep_ms;
 	unsigned long silence_ms;
+	unsigned long beep_color;
+	unsigned long silence_color;
 	unsigned long cycle_count;
 	unsigned char options;
+	char *log_message;
 	};
 
-void beep_it(struct beep_pattern *pattern);
+void beep_it(unsigned char pattern_idx);
 void open_door(void);
 void ui_init(void);
 
