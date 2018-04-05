@@ -1,30 +1,18 @@
-#include <Wiegand.h>
 #include <Ethernet.h>
 #include <EthernetUdp.h>
 
 #include "config.h"
-#include "cJSON.h"
-#include "API.h"
 #include "ui.h"
 #include "schedule.h"
 #include "log.h"
+#include "network.h"
+#include "scanner.h"
 #include "http.h"
 
-char *location = "main_door";
-char key[]     = {'Y', 'o', 'u', ' ', 'l', 'o', 's', 't', ' ', 't', 'h', 'e', 'G', 'a', 'm', 'e'};
-
-WIEGAND wg;
-byte mac[]     = {0x48, 0x49, 0x56, 0x45, 0x31, 0x33};
-byte ip[]      = {172, 16, 3, 245};
-byte gateway[] = {172, 16, 2, 1};
-byte subnet[]  = {255, 255, 254, 0};
-byte dns_d[]   = {172, 16, 2, 1};
-
-EthernetClient   client;
-EthernetUDP      udp;
-static IPAddress mc_ip(239, 72, 49, 51);
-unsigned long    usersCache[100];
-
+static EthernetClient         client;
+static EthernetUDP            udp;
+static IPAddress              mc_ip(239, 72, 49, 51);
+static unsigned long          usersCache[100];
 static volatile unsigned char doorbell_data = 5;
 
 struct beep_pattern start_of_day =
@@ -44,7 +32,7 @@ static char doorbell(char *data, unsigned long *time, unsigned long now)
 	{
 	if (((++(*data)) & 0x0F) < 4)
 		{
-		udp.beginPacket(mc_ip, 12595);
+		udp.beginPacket(mc_ip, MULTICAST_PORT);
 		udp.write("doorbell");
 		udp.endPacket();
 		*time = now + 250;
@@ -90,66 +78,15 @@ void doorbell_isr(void)
 		}
 	}
 
-void setup()
-	{
-	ui_init();
-	log_begin(115200);
-
-	digitalWrite(BUZZER_PIN, LOW);
-	pinMode(DOORBELL_PIN,    INPUT_PULLUP);
-	pinMode(BUZZER_PIN,      OUTPUT);
-	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), doorbell_isr, CHANGE);
-
-	log_msg("Initializing Ethernet Controller.");
-	Ethernet.begin(mac, ip, dns_d, gateway, subnet);
-	udp.beginMulticast(mc_ip, 12595);
-
-	// Initialize Wiegand Interface
-	wg.begin();
-
-	// initialize the usersCache array as all 0.
-	memset(usersCache, 0, sizeof(usersCache));
-	
-	update_nonce();
-	update_nonce();
-
-	beep_it(&start_of_day);
-	}
-
-void loop()
+static void cache_access_handler(unsigned long code)
 	{
 	unsigned char badge_ok, cached = 0;
-	char buffer[UDP_TX_PACKET_MAX_SIZE];
-	unsigned long badgeID = 0;
-	unsigned char type;
-	unsigned long time = 0;
 	unsigned char i;
-	int sz;
-
-	run_schedule();
-
-	sz = udp.parsePacket();
-	if (sz)
-		{
-		log_msg("Packet!");
-		udp.read(buffer, UDP_TX_PACKET_MAX_SIZE);
-		}
-
-	if (!wg.available())
-		return;
-
-	badgeID = wg.getCode();
-	type    = wg.getWiegandType();
-
-	log_msg("Badge scan: %lu/0x%lX, type W%hd", badgeID, badgeID, type);
-
-	if (type != 26)
-		return;
-
+	
 	// Check to see if the user has been cached
 	for (i = 0; i < (sizeof(usersCache) / sizeof(usersCache[0])); i++)
 		{
-		if(usersCache[i] == badgeID && usersCache[i] > 0)
+		if(usersCache[i] == code && usersCache[i] > 0)
 			{
 			log_msg("Verified via cache ok to open door...");
 			cached = 1;
@@ -158,7 +95,7 @@ void loop()
 			}
 		}
 
-	badge_ok = check_badge(badgeID, NULL);
+	badge_ok = check_badge(code, NULL);
 
 	if (badge_ok)
 		{
@@ -172,7 +109,7 @@ void loop()
 				{
 				if (usersCache[i] == 0)
 					{
-					usersCache[i] = badgeID;
+					usersCache[i] = code;
 					break;
 					}
 				}
@@ -182,7 +119,41 @@ void loop()
 		{
 		// remove them from the cached list as they are not allowed in
 		for (i = 0; i < (sizeof(usersCache) / sizeof(usersCache[0])); i++)
-			if (usersCache[i] == badgeID)
+			if (usersCache[i] == code)
 				usersCache[i] = 0;
+		}
+	}
+
+void setup()
+	{
+	ui_init();
+	log_begin(115200);
+
+	digitalWrite(BUZZER_PIN, LOW);
+	pinMode(DOORBELL_PIN,    INPUT_PULLUP);
+	pinMode(BUZZER_PIN,      OUTPUT);
+	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), doorbell_isr, CHANGE);
+
+	network_init();
+	udp.beginMulticast(mc_ip, MULTICAST_PORT);
+
+	memset(usersCache, 0, sizeof(usersCache));
+	scanner_init(cache_access_handler);
+
+	beep_it(&start_of_day);
+	}
+
+void loop()
+	{
+	char buffer[UDP_TX_PACKET_MAX_SIZE];
+	int sz;
+
+	run_schedule();
+
+	sz = udp.parsePacket();
+	if (sz)
+		{
+		log_msg("Packet!");
+		udp.read(buffer, UDP_TX_PACKET_MAX_SIZE);
 		}
 	}
