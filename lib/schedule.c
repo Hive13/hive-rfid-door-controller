@@ -107,8 +107,8 @@ void run_schedule(void)
 
 			if (ret == SCHEDULE_REDO && t->status == STATUS_DELETED)
 				{
-				t = t->next;
 				t->status = STATUS_SCHEDULED;
+				t = t->next;
 				continue;
 				}
 
