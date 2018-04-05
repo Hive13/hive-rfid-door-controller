@@ -5,7 +5,6 @@
 #include "vend.h"
 #include "leds.h"
 #include "http.h"
-#include "API.h"
 #include "schedule.h"
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
