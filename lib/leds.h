@@ -21,8 +21,8 @@ void leds_all(uint32_t color);
 #define leds_init()
 #define leds_off()
 #define leds_busy()
-#define leds_random()
-#define leds_all()
+#define leds_random(which)
+#define leds_all(color)
 #endif
 uint32_t Color(byte r, byte g, byte b);
 uint32_t Wheel(byte WheelPos);

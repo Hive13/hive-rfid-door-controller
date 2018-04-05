@@ -1,12 +1,12 @@
+#include "config.h"
+
 #include <Arduino.h>
 #include <Adafruit_NeoPixel.h>
 
 #include "log.h"
 #include "leds.h"
-#include "vend.h"
 
-#define LED_PIN   6
-
+#ifdef SODA_MACHINE
 extern unsigned char soda_count;
 extern unsigned char sold_out;
 
@@ -93,7 +93,7 @@ void leds_all(unsigned long color)
 
 	for(i = 0; i < leds.numPixels(); i++)
 		leds.setPixelColor(i, color);
-	leds_show(1);
+	leds_show(0);
 	}
 
 void leds_random(char which)
@@ -134,6 +134,7 @@ void leds_two(char which, uint32_t color1, uint32_t color2)
 	
 	leds_show(1);
 	}
+#endif
 
 // Create a 24 bit color value from R,G,B
 uint32_t Color(byte r, byte g, byte b)
