@@ -1,6 +1,4 @@
-#include "cJSON.h"
 #include "config.h"
-#include "API.h"
 #include "access_temp.h"
 #include "schedule.h"
 #include "log.h"
@@ -16,13 +14,6 @@ struct beep_pattern start_of_day =
 	.cycle_count = 2,
 	.options     = RED_WITH_BEEP,
 	};
-struct beep_pattern init =
-	{
-	.beep_ms     = 100,
-	.silence_ms  = 100,
-	.cycle_count = 2,
-	.options     = RED_ALWAYS,
-	};
 
 static void access_handler(unsigned long code)
 	{
@@ -32,8 +23,6 @@ static void access_handler(unsigned long code)
 void setup(void)
 	{
 	ui_init();
-	
-	beep_it(&init);
 	log_begin(115200);
 	network_init();
 	scanner_init(access_handler);

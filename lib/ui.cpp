@@ -4,6 +4,14 @@
 #include "log.h"
 #include "schedule.h"
 
+static struct beep_pattern init =
+	{
+	.beep_ms     = 100,
+	.silence_ms  = 100,
+	.cycle_count = 2,
+	.options     = RED_ALWAYS,
+	};
+
 struct door_open
 	{
 	unsigned int  beep_pin, light_pin, door_pin, open_pin;
@@ -40,6 +48,7 @@ void ui_init(void)
 	pinMode(OPEN_PIN,  INPUT_PULLUP);
 
 	schedule(0, (time_handler *)led_flicker, NULL);
+	beep_it(&init);
 	}
 
 void beep_it(struct beep_pattern *pattern)
