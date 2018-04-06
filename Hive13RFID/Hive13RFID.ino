@@ -2,12 +2,12 @@
 #include <EthernetUdp.h>
 
 #include "config.h"
+#include "log.h"
+#include "http.h"
 #include "ui.h"
 #include "schedule.h"
-#include "log.h"
 #include "network.h"
 #include "scanner.h"
-#include "http.h"
 
 static EthernetClient         client;
 static EthernetUDP            udp;
@@ -22,7 +22,7 @@ static volatile unsigned char doorbell_data = 5;
 */
 static char doorbell(char *data, unsigned long *time, unsigned long now)
 	{
-	if (((++(*data)) & 0x0F) < 4)
+	if (++(*data) < 4)
 		{
 		udp.beginPacket(mc_ip, MULTICAST_PORT);
 		udp.write("doorbell");
@@ -32,7 +32,7 @@ static char doorbell(char *data, unsigned long *time, unsigned long now)
 		}
 	digitalWrite(BUZZER_PIN, LOW);
 	*time = now + 4000;
-	if (((*data) & 0x0F) == 4)
+	if (*data == 4)
 		return SCHEDULE_REDO;
 	return SCHEDULE_DONE;
 	}
@@ -40,7 +40,7 @@ static char doorbell(char *data, unsigned long *time, unsigned long now)
 static char doorbell_holdoff(char *data, unsigned long *time, unsigned long now)
 	{
 	log_msg("holdoff()");
-	if ((doorbell_data & 0x0F) == 5)
+	if (doorbell_data == 5)
 		ring_doorbell(1);
 	return SCHEDULE_DONE;
 	}
@@ -50,9 +50,17 @@ static char doorbell_holdoff(char *data, unsigned long *time, unsigned long now)
 */
 void ring_doorbell(char send_packet)
 	{
-	doorbell_data = send_packet ? 0x80 : 0;
 	digitalWrite(BUZZER_PIN, HIGH);
-	schedule(0, doorbell, &doorbell_data);
+	if (send_packet)
+		{
+		doorbell_data = 0;
+		schedule(0, doorbell, &doorbell_data);
+		}
+	else
+		{
+		doorbell_data = 3;
+		schedule(millis() + 1000, doorbell, &doorbell_data);
+		}
 	}
 
 void doorbell_isr(void)
@@ -116,7 +124,7 @@ static void cache_access_handler(unsigned long code)
 		}
 	}
 
-void setup()
+void setup(void)
 	{
 	log_begin(115200);
 	ui_init();
@@ -134,7 +142,7 @@ void setup()
 	beep_it(BEEP_PATTERN_START);
 	}
 
-void loop()
+void loop(void)
 	{
 	char buffer[UDP_TX_PACKET_MAX_SIZE];
 	int sz;
@@ -148,3 +156,5 @@ void loop()
 		udp.read(buffer, UDP_TX_PACKET_MAX_SIZE);
 		}
 	}
+
+/* vim:set filetype=c: */
