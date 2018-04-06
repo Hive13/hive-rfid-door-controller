@@ -1,10 +1,7 @@
 #ifndef __ACCESS_TEMP_H
 #define __ACCESS_TEMP_H
 
-#define TEMPERATURE_PIN D5
-#define TEMPERATURE_UPDATE_INTERVAL 60000
-
-#define TEMPERATURE_POKE_PIN D6
+#include "config.h"
 
 #ifdef __cplusplus
 extern "C" {

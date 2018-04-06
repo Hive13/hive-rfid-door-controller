@@ -4,6 +4,11 @@
 #define SCHEDULE_DONE 0
 #define SCHEDULE_REDO 1
 
+#define STATUS_DEAD 0
+#define STATUS_SCHEDULED 1
+#define STATUS_RUNNING 2
+#define STATUS_DELETED 3
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -15,6 +20,7 @@ struct task
 	unsigned long time;
 	time_handler  *func;
 	void          *data;
+	unsigned char status;
 	};
 
 void schedule_cancel(void *ptr);

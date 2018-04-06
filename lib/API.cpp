@@ -1,11 +1,34 @@
+#include "config.h"
+
 #include <Arduino.h>
 #include <SHA512.h>
 
+#ifdef PLATFORM_ARDUINO
+#include <Ethernet.h> 
+#include <b64.h>
+#include <HttpClient.h>
+#else
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
+#endif
+
 #include "API.h"
-
+#include "http.h"
 #include "cJSON.h"
+#include "log.h"
 
-static char *hex = "0123456789ABCDEF";
+#ifdef SODA_MACHINE
+#include "leds.h"
+#define beep_it(x)
+#else
+#include "ui.h"
+#endif
+
+static char *hex    = "0123456789ABCDEF";
+static char *device = DEVICE;
+static char key[]   = KEY;
+char nonce[33];
 
 unsigned char val(char *i)
 	{
@@ -49,12 +72,16 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	result = cJSON_Parse(in);
 
 	if (!result)
+		{
+		log_msg("Cannot parse result");
 		return RESPONSE_BAD_JSON;
+		}
 	
 	cs = cJSON_GetObjectItem(result, "checksum");
 	if (!cs)
 		{
 		cJSON_Delete(result);
+		log_msg("Missing checksum");
 		return RESPONSE_BAD_JSON;
 		}
 
@@ -62,7 +89,11 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	data  = cJSON_DetachItemFromObject(result, "data");
 
 	if (!data)
+		{
+		cJSON_Delete(result);
+		log_msg("Missing data");
 		return RESPONSE_BAD_JSON;
+		}
 
 	get_hash(data, provided_cksum, key, key_len);
 
@@ -79,13 +110,33 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	if (code)
 		{
 		cJSON_Delete(data);
+		log_msg("Invalid checksum");
 		return RESPONSE_BAD_CKSUM;
 		}
+	
+	response = cJSON_DetachItemFromObject(data, "nonce_valid");
+	if (!response)
+		{
+		cJSON_Delete(data);
+		log_msg("Invalid nonce.");
+		update_nonce();
+		return RESPONSE_BAD_NONCE;
+		}
+	if (response->type != cJSON_True)
+		{
+		cJSON_Delete(data);
+		cJSON_Delete(response);
+		log_msg("Invalid nonce.");
+		update_nonce();
+		return RESPONSE_BAD_NONCE;
+		}
+	cJSON_Delete(response);
 	
 	response = cJSON_DetachItemFromObject(data, "response");
 	if (!response)
 		{
 		cJSON_Delete(data);
+		log_msg("Missing response");
 		return RESPONSE_BAD_JSON;
 		}
 
@@ -93,6 +144,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 		{
 		cJSON_Delete(data);
 		cJSON_Delete(response);
+		log_msg("Invalid response");
 		return RESPONSE_BAD_JSON;
 		}
 	
@@ -102,6 +154,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	if (!response)
 		{
 		cJSON_Delete(data);
+		log_msg("No random_response");
 		return RESPONSE_BAD_CKSUM;
 		}
 	
@@ -122,6 +175,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	if (i < rv_len)
 		{
 		cJSON_Delete(data);
+		log_msg("Invalid random_response");
 		return RESPONSE_BAD_CKSUM;
 		}
 
@@ -129,6 +183,11 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 		*out = data;
 	else
 		cJSON_Delete(data);
+		
+	response = cJSON_GetObjectItem(data, "new_nonce");
+	memmove(nonce, response->valuestring, 32);
+	nonce[32] = 0;
+	log_msg("Good response!");
 
 	return RESPONSE_GOOD;
 	}
@@ -151,70 +210,169 @@ void get_hash(struct cJSON *data, char *sha_buf, char *key, unsigned char key_le
 	free(out);
 	}
 
-char *get_request(unsigned long badge_num, char *operation, char *location, char *device, char *key, unsigned char key_len, char *rv, unsigned char rv_len)
-	{
-	struct cJSON
-		*data = cJSON_CreateObject(),
-		*root = cJSON_CreateObject(),
-		*ran  = cJSON_CreateArray(),
-		*json, *prev, *result;
-	unsigned char i;
-	unsigned long r;
+char *get_signed_packet(struct cJSON *data)
+	{	
+	struct cJSON *root = cJSON_CreateObject();
 	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
 	char *out;
-
-	for (i = 0; i < rv_len; i++)
-		{
-		json = cJSON_CreateNumber((long)rv[i]);
-		if (!i)
-			ran->child = json;
-		else
-			{
-			prev->next = json;
-			json->prev = prev;
-			}
-		prev = json;
-		}
 	
-	cJSON_AddItemToObjectCS(data, "badge",           cJSON_CreateNumber(badge_num));
-	if (location)
-		cJSON_AddItemToObjectCS(data, "item",          cJSON_CreateString(location));
-	if (operation)
-		cJSON_AddItemToObjectCS(data, "operation",     cJSON_CreateString(operation));
-	else
-		cJSON_AddItemToObjectCS(data, "operation",     cJSON_CreateString("access"));
+	get_hash(data, sha_buf, key, sizeof(key));
+
+	print_hex(sha_buf_out, sha_buf, SHA512_SZ);
+	
+	cJSON_AddItemToObjectCS(root, "data", data);
+	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(device));
+	cJSON_AddItemToObjectCS(root, "checksum", cJSON_CreateString(sha_buf_out));
+	
+	out = cJSON_Print(root);
+	cJSON_Delete(root);
+
+	return out;
+	}
+
+#ifdef PLATFORM_ARDUINO
+unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand)
+	{
+	char *body, *request;
+	EthernetClient ec;
+	HttpClient hc(ec);
+	int err, body_len;
+	struct cJSON *new_nonce;
+	unsigned long start, l;
+	unsigned char i;
+	
+#ifdef SODA_MACHINE
+	leds_busy();
+#endif
+
+	request = get_signed_packet(data);
+	l = strlen(request);
+	log_msg("Request: %s", request);
+
+	hc.beginRequest();
+	hc.post("intweb.at.hive13.org", "/api/access");
+	hc.flush();
+	hc.sendHeader("Content-Type", "application/json");
+	hc.flush();
+	hc.sendHeader("Content-Length", l);
+	hc.flush();
+	hc.write(request, l);
+	hc.flush();
+	free(request);
+
+	err = hc.responseStatusCode();
+	if (err != 200)
+		return RESPONSE_BAD_HTTP;
+	body_len = hc.contentLength();
+	body = malloc(body_len + 1);
+
+	if (hc.skipResponseHeaders() > 0)
+		{
+		Serial.println("Header error.");
+		return RESPONSE_BAD_HTTP;
+		}
+
+	start = millis();
+	l = 0;
+	while ((hc.connected() || hc.available()) && ((millis() - start) < NETWORK_TIMEOUT))
+		{
+		if (hc.available())
+			{
+			body[l++] = hc.read();
+			start = millis();
+			}
+		else
+			delay(NETWORK_DELAY);
+		}
+	body[l++] = 0;
+	hc.stop();
+#ifdef SODA_MACHINE
+	leds_off();
+#endif
+	log_msg("Response: %s", body);
+
+	i = parse_response(body, result, key, sizeof(key), rand, RAND_SIZE);
+	free(body);
+	
+	if (i != RESPONSE_GOOD)
+		beep_it(BEEP_PATTERN_PACKET_ERROR);
 		
-	cJSON_AddItemToObjectCS(data, "random_response", ran);
-	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(1));
-	get_hash(data, sha_buf, key, key_len);
-
-	print_hex(sha_buf_out, sha_buf, SHA512_SZ);
-	
-	cJSON_AddItemToObjectCS(root, "data", data);
-	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(device));
-	cJSON_AddItemToObjectCS(root, "checksum", cJSON_CreateString(sha_buf_out));
-	
-	out = cJSON_Print(root);
-	cJSON_Delete(root);
-
-	return out;
+	return i;
 	}
 
-char *log_data(struct cJSON *l_data, char *device, char *key, unsigned char key_len, char *rv, unsigned char rv_len)
+static unsigned long scan_count = 0;
+void get_rand(char *rand)
 	{
-	struct cJSON
-		*data = cJSON_CreateObject(),
-		*root = cJSON_CreateObject(),
-		*ran  = cJSON_CreateArray(),
-		*json, *prev, *result;
+	unsigned long m = millis();
+	memcpy(rand, &m, sizeof(unsigned long));
+	memcpy(rand + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
+	scan_count++;
+	}
+
+#endif
+#ifdef PLATFORM_ESP
+static const char host[] = HTTP_HOST;
+
+unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand)
+	{
+	int code;
+	HTTPClient http;
+	String body;
+	unsigned char i;
+	struct cJSON *new_nonce;
+	char *request;
+	
+	request = get_signed_packet(data);
+	log_msg("Request: %s", request);
+
+	http.begin(host);
+	http.addHeader("Content-Type", "application/json");
+
+	code = http.POST(request, strlen((char *)request));
+	free(request);
+
+	if (code != 200)
+		{
+		log_msg("Got response back: %i", code);
+		beep_it(BEEP_PATTERN_NETWORK_ERROR);
+		wifi_error();
+		return RESPONSE_BAD_HTTP;
+		}
+
+	body = http.getString();
+	log_msg("Response: %s", body.c_str());
+	i = parse_response((char *)body.c_str(), result, key, sizeof(key), rand, RAND_SIZE);
+	
+	if (i != RESPONSE_GOOD)
+		beep_it(BEEP_PATTERN_PACKET_ERROR);
+		
+	return i;
+	}
+
+#define RANDOM_REG32  ESP8266_DREG(0x20E44)
+void get_rand(char *rand)
+	{
 	unsigned char i;
 	unsigned long r;
-	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
-	char *out;
-
-	for (i = 0; i < rv_len; i++)
+	
+	for (i = 0; i < RAND_SIZE; i++)
 		{
-		json = cJSON_CreateNumber((long)rv[i]);
+		if (!(i % 4))
+			r = RANDOM_REG32;
+		rand[i] = ((r >> (3 - i)) & 0xFF);
+		}
+	}
+#endif
+
+void add_random_response(struct cJSON *data, char *rand)
+	{
+	struct cJSON *json, *prev, *ran = cJSON_CreateArray();
+	unsigned char i;
+	
+	get_rand(rand);
+	for (i = 0; i < RAND_SIZE; i++)
+		{
+		json = cJSON_CreateNumber((long)rand[i]);
 		if (!i)
 			ran->child = json;
 		else
@@ -224,21 +382,7 @@ char *log_data(struct cJSON *l_data, char *device, char *key, unsigned char key_
 			}
 		prev = json;
 		}
-
-	cJSON_AddItemToObjectCS(data, "log_data",        l_data);
-	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("log"));
 	cJSON_AddItemToObjectCS(data, "random_response", ran);
-	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(1));
-	get_hash(data, sha_buf, key, key_len);
-
-	print_hex(sha_buf_out, sha_buf, SHA512_SZ);
-
-	cJSON_AddItemToObjectCS(root, "data", data);
-	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(device));
-	cJSON_AddItemToObjectCS(root, "checksum", cJSON_CreateString(sha_buf_out));
-
-	out = cJSON_Print(root);
-	cJSON_Delete(root);
-
-	return out;
 	}
+
+
