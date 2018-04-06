@@ -59,6 +59,15 @@ static struct beep_pattern patterns[] = {
 	.options       = RED_ALWAYS,
 	.log_message   = "No credits",
 	},
+	{ /* BEEP_PATTERN_DOORBELL */
+	.beep_ms       = 100,
+	.silence_ms    = 100,
+	.beep_color    = 0x0000FF00,
+	.silence_color = 0x00000000,
+	.cycle_count   = 5,
+	.options       = GREEN_ALWAYS,
+	.log_message   = "Doorbell rang",
+	},
 };
 
 struct door_open

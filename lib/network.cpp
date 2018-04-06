@@ -35,14 +35,6 @@ static char *pass = WIFI_PASS;
 static WiFiUDP   udp;
 static IPAddress mc_ip(239, 72, 49, 51);
 
-static struct beep_pattern doorbell_beep =
-	{
-	.beep_ms     = 100,
-	.silence_ms  = 100,
-	.cycle_count = 15,
-	.options     = GREEN_WITH_BEEP,
-	};
-
 char handle_multicast(WiFiUDP *u, unsigned long *t, unsigned long now)
 	{
 	static unsigned long last_beep = 0;
@@ -57,7 +49,7 @@ char handle_multicast(WiFiUDP *u, unsigned long *t, unsigned long now)
 	if (i == 8 && !memcmp(b, "doorbell", 8))
 		{
 		if ((last_beep + 500) <= now)
-			beep_it(&doorbell_beep);
+			beep_it(BEEP_PATTERN_DOORBELL);
 		last_beep = now;
 		}
 

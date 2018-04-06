@@ -35,6 +35,7 @@
 #define BEEP_PATTERN_PACKET_ERROR 3
 #define BEEP_PATTERN_INVALID_CARD 4
 #define BEEP_PATTERN_NO_CREDITS 5
+#define BEEP_PATTERN_DOORBELL 6
 
 #ifdef __cplusplus
 extern "C" {
