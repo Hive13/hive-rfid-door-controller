@@ -14,6 +14,7 @@
 #include "log.h"
 #include "schedule.h"
 #include "http.h"
+#include "leds.h"
 
 #ifdef PLATFORM_ARDUINO
 static byte mac[] = MAC;
@@ -77,12 +78,14 @@ void network_init(void)
 #ifdef PLATFORM_ARDUINO
 
 	log_msg("Initializing Ethernet Controller.");
+	leds_busy();
 	while (Ethernet.begin(mac) != 1)
 		{
 		log_msg("Error obtaining DHCP address.  Let's wait a second and try again.");
 		delay(1000);
 		}
 	schedule(0, handle_ethernet, NULL);
+	leds_off();
 	
 	/* Do it twice for Arduino because the first request times out. */
 	update_nonce();

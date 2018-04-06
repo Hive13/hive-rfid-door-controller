@@ -23,20 +23,6 @@
 #define beep_it(x)
 #else
 #include "ui.h"
-struct beep_pattern network_error =
-	{
-	.beep_ms     = 250,
-	.silence_ms  = 250,
-	.cycle_count = 4,
-	.options     = RED_ALWAYS,
-	};
-struct beep_pattern packet_error =
-	{
-	.beep_ms     = 250,
-	.silence_ms  = 250,
-	.cycle_count = 8,
-	.options     = RED_ALWAYS,
-	};
 #endif
 
 static char *hex    = "0123456789ABCDEF";
@@ -309,7 +295,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	free(body);
 	
 	if (i != RESPONSE_GOOD)
-		beep_it(&packet_error);
+		beep_it(BEEP_PATTERN_PACKET_ERROR);
 		
 	return i;
 	}
@@ -348,7 +334,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	if (code != 200)
 		{
 		log_msg("Got response back: %i", code);
-		beep_it(&network_error);
+		beep_it(BEEP_PATTERN_NETWORK_ERROR);
 		wifi_error();
 		return RESPONSE_BAD_HTTP;
 		}
@@ -358,7 +344,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	i = parse_response((char *)body.c_str(), result, key, sizeof(key), rand, RAND_SIZE);
 	
 	if (i != RESPONSE_GOOD)
-		beep_it(&packet_error);
+		beep_it(BEEP_PATTERN_PACKET_ERROR);
 		
 	return i;
 	}

@@ -1,5 +1,5 @@
 #include "config.h"
-#include "soda_temp.h"
+#include "access_temp.h"
 #include "log.h"
 #include "http.h"
 #include "ui.h"
@@ -83,7 +83,7 @@ void setup(void)
 	scanner_init(access_handler);
 #endif
 #endif
-	soda_temp_init();
+	access_temperature_init();
 	beep_it(BEEP_PATTERN_START);
 	}
 

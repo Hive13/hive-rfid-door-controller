@@ -5,6 +5,8 @@
 
 #ifdef PLATFORM_ARDUINO
 
+#define LED_PIN   6
+
 #define DOOR_PIN  6
 #define LIGHT_PIN 13
 #ifndef BEEP_PIN

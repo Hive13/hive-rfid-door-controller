@@ -1,22 +1,12 @@
 #include "config.h"
 
+#include <Arduino.h>
+
 #include "http.h"
 #include "cJSON.h"
 #include "API.h"
 #include "log.h"
-
-#ifdef SODA_MACHINE
-#define beep_it(x)
-#else
 #include "ui.h"
-struct beep_pattern invalid_card =
-	{
-	.beep_ms     = 1000,
-	.silence_ms  = 0,
-	.cycle_count = 1,
-	.options     = RED_ALWAYS,
-	};
-#endif
 
 extern char nonce[33];
 static char *location = LOCATION;
@@ -73,7 +63,7 @@ unsigned char check_badge(unsigned long badge_num, void (*success)(void))
 		else
 			{
 			log_msg("Access denied.");
-			beep_it(&invalid_card);
+			beep_it(BEEP_PATTERN_INVALID_CARD);
 			i = 0;
 			}
 		cJSON_Delete(result);
