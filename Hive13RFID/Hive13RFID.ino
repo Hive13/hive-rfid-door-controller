@@ -71,7 +71,6 @@ void setup(void)
 	log_begin(115200);
 	ui_init();
 	network_init();
-	doorbell_init();
 #ifdef SODA_MACHINE
 	vend_init();
 	scanner_init(handle_vend);
