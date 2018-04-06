@@ -100,7 +100,7 @@ void network_init(void)
 	WiFi.setAutoConnect(1);
 	WiFi.setAutoReconnect(1);
 
-	udp.beginMulticast(WiFi.localIP(), mc_ip, 12595);
+	udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
 
 	schedule(0, (time_handler *)handle_multicast, &udp);
 #endif
