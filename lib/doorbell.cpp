@@ -7,7 +7,11 @@
 #include "schedule.h"
 #include "doorbell.h"
 
+#ifdef PLATFORM_ARUDINO
 static EthernetUDP            udp;
+#else
+static WiFiUDP                udp;
+#endif
 static IPAddress              mc_ip(239, 72, 49, 51);
 static volatile unsigned char doorbell_data = 5;
 
@@ -62,7 +66,7 @@ void ring_doorbell(char send_packet)
 void doorbell_isr(void)
 	{
 	static volatile void *doorbell_t = NULL;
-	char pressed = !digitalRead(DOORBELL_PIN);
+	char pressed = !digitalRead(DOORBELL_BUTTON_PIN);
 	unsigned long m = millis();
 
 	if (pressed)
@@ -76,23 +80,39 @@ void doorbell_isr(void)
 
 char doorbell_network(char *data, unsigned long *time, unsigned long now)
 	{
+	static unsigned long last_beep = 0;
 	char buffer[UDP_TX_PACKET_MAX_SIZE];
 	int sz;
 
 	sz = udp.parsePacket();
-	if (sz)
+	if (sz >= 8 && udp.destinationIP() == mc_ip)
 		{
-		log_msg("Packet!");
 		udp.read(buffer, UDP_TX_PACKET_MAX_SIZE);
-		}
+		
+		if (i == 8 && !memcmp(b, "doorbell", 8))
+			{
+			if ((last_beep + 5000) <= now)
+				beep_it(BEEP_PATTERN_DOORBELL);
+			last_beep = now;
+			}
+		}	
+	udp.flush();
+	return SCHEDULE_REDO;
 	}
 
 void doorbell_init(void)
 	{
-	digitalWrite(BUZZER_PIN, LOW);
-	pinMode(DOORBELL_PIN,    INPUT_PULLUP);
-	pinMode(BUZZER_PIN,      OUTPUT);
-	attachInterrupt(digitalPinToInterrupt(DOORBELL_PIN), doorbell_isr, CHANGE);
+#ifdef HAS_DOORBELL_BUTTON
+	digitalWrite(BUZZER_PIN,     LOW);
+	pinMode(DOORBELL_BUTTON_PIN, INPUT_PULLUP);
+	pinMode(BUZZER_PIN,          OUTPUT);
+	attachInterrupt(digitalPinToInterrupt(DOORBELL_BUTTON_PIN), doorbell_isr, CHANGE);
+#endif
 
+#ifdef PLATFORM_ARDUINO
 	udp.beginMulticast(mc_ip, MULTICAST_PORT);
+#else
+	udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
+#endif
+	schedule(0, doorbell_network, &udp);
 	}

@@ -83,6 +83,7 @@ void setup(void)
 	scanner_init(access_handler);
 #endif
 #endif
+	doorbell_init();
 	beep_it(BEEP_PATTERN_START);
 	}
 

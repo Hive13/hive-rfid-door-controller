@@ -32,32 +32,6 @@ char handle_ethernet(void *ptr, unsigned long *t, unsigned long m)
 static char *ssid = WIFI_SSID;
 static char *pass = WIFI_PASS;
 
-static WiFiUDP   udp;
-static IPAddress mc_ip(239, 72, 49, 51);
-
-char handle_multicast(WiFiUDP *u, unsigned long *t, unsigned long now)
-	{
-	static unsigned long last_beep = 0;
-	int sz = u->parsePacket(), i;
-	unsigned char b[8];
-
-	if (sz <= 0)
-		return SCHEDULE_REDO;
-
-	i = u->read(b, 8);
-
-	if (i == 8 && !memcmp(b, "doorbell", 8))
-		{
-		if ((last_beep + 500) <= now)
-			beep_it(BEEP_PATTERN_DOORBELL);
-		last_beep = now;
-		}
-
-	u->flush();
-
-	return SCHEDULE_REDO;
-	}
-
 void wifi_error(void)
 	{
 	WiFi.disconnect(1);
@@ -68,7 +42,6 @@ void wifi_error(void)
 void network_init(void)
 	{
 #ifdef PLATFORM_ARDUINO
-
 	log_msg("Initializing Ethernet Controller.");
 	leds_busy();
 	while (Ethernet.begin(mac) != 1)
@@ -99,10 +72,6 @@ void network_init(void)
 	log_progress_end("connected!");
 	WiFi.setAutoConnect(1);
 	WiFi.setAutoReconnect(1);
-
-	udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
-
-	schedule(0, (time_handler *)handle_multicast, &udp);
 #endif
 	update_nonce();
 	}
