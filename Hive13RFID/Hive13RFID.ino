@@ -7,6 +7,9 @@
 #include "scanner.h"
 #include "doorbell.h"
 
+#ifdef SODA_MACHINE
+#include "vend.h"
+#else
 #ifdef CACHE_BADGES
 static unsigned long usersCache[100];
 
@@ -61,6 +64,7 @@ static void access_handler(unsigned long code)
 	check_badge(code, open_door);
 	}
 #endif
+#endif
 
 void setup(void)
 	{
@@ -68,11 +72,16 @@ void setup(void)
 	ui_init();
 	network_init();
 	doorbell_init();
+#ifdef SODA_MACHINE
+	vend_init();
+	scanner_init(handle_vend);
+#else
 #ifdef CACHE_BADGES
 	memset(usersCache, 0, sizeof(usersCache));
 	scanner_init(cache_access_handler);
 #else
 	scanner_init(access_handler);
+#endif
 #endif
 	beep_it(BEEP_PATTERN_START);
 	}
