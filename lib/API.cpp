@@ -17,13 +17,7 @@
 #include "http.h"
 #include "cJSON.h"
 #include "log.h"
-
-#ifdef SODA_MACHINE
-#include "leds.h"
-#define beep_it(x)
-#else
 #include "ui.h"
-#endif
 
 static char *hex    = "0123456789ABCDEF";
 static char *device = DEVICE;
@@ -241,10 +235,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	unsigned long start, l;
 	unsigned char i;
 	
-#ifdef SODA_MACHINE
 	leds_busy();
-#endif
-
 	request = get_signed_packet(data);
 	l = strlen(request);
 	log_msg("Request: %s", request);
@@ -286,9 +277,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 		}
 	body[l++] = 0;
 	hc.stop();
-#ifdef SODA_MACHINE
 	leds_off();
-#endif
 	log_msg("Response: %s", body);
 
 	i = parse_response(body, result, key, sizeof(key), rand, RAND_SIZE);

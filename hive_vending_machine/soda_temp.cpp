@@ -7,9 +7,6 @@
 #include "cJSON.h"
 #include "schedule.h"
 
-extern unsigned char key[16];
-extern char *device;
-
 static uint32_t cur_temp = 0;
 
 char soda_temperature_sensor(struct temp_sensor *me, unsigned long temp)

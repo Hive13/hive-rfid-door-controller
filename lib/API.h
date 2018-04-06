@@ -1,6 +1,15 @@
 #ifndef __API_H
 #define __API_H
 
+#define SHA512_SZ 64
+
+#ifdef PLATFORM_ARDUINO
+#define RAND_SIZE (2 * sizeof(unsigned long))
+#endif
+#ifdef PLATFORM_ESP8266
+#define RAND_SIZE 16
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
