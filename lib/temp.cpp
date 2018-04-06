@@ -110,8 +110,6 @@ char handle_temperature(struct temp_sensor *sensors, unsigned long *t, unsigned 
 		temp = get_temperature(sensors[i].addr);
 		if (sensors[i].func)
 			sensors[i].func(sensors + i, temp);
-		if (sensors[i].log_name)
-			log_temp(temp, sensors[i].log_name);
 		}
 	*t = m + schedule_interval;
 	return SCHEDULE_REDO;
