@@ -7,7 +7,7 @@
 #include "schedule.h"
 #include "doorbell.h"
 
-#ifdef PLATFORM_ARUDINO
+#ifdef PLATFORM_ARDUINO
 static EthernetUDP            udp;
 #else
 static WiFiUDP                udp;
@@ -85,11 +85,16 @@ char doorbell_network(char *data, unsigned long *time, unsigned long now)
 	int sz;
 
 	sz = udp.parsePacket();
-	if (sz >= 8 && udp.destinationIP() == mc_ip)
+	
+	if (sz >= 8
+#ifdef PLATFORM_ESP8266
+		&& udp.destinationIP() == mc_ip
+#endif
+		)
 		{
 		udp.read(buffer, UDP_TX_PACKET_MAX_SIZE);
 		
-		if (i == 8 && !memcmp(b, "doorbell", 8))
+		if (sz == 8 && !memcmp(buffer, "doorbell", 8))
 			{
 			if ((last_beep + 5000) <= now)
 				beep_it(BEEP_PATTERN_DOORBELL);

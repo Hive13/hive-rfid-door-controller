@@ -15,8 +15,8 @@ extern "C" {
 #endif
 
 unsigned char val(char *i);
-unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned char key_len, char *rv, unsigned char rv_len);
-void get_hash(struct cJSON *data, char *sha_buf, char *key, unsigned char key_len);
+unsigned char parse_response(char *in, struct cJSON **out, char *rv);
+void get_hash(struct cJSON *data, char *sha_buf);
 void print_hex(char *str, char *src, unsigned char sz);
 
 char *get_signed_packet(struct cJSON *data);

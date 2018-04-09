@@ -56,7 +56,7 @@ void print_hex(char *str, char *src, unsigned char sz)
 	*str = 0;
 	}
 
-unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned char key_len, char *rv, unsigned char rv_len)
+unsigned char parse_response(char *in, struct cJSON **out, char *rv)
 	{
 	unsigned char i, j;
 	struct cJSON *result, *data, *response, *cs;
@@ -89,7 +89,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 		return RESPONSE_BAD_JSON;
 		}
 
-	get_hash(data, provided_cksum, key, key_len);
+	get_hash(data, provided_cksum);
 
 	for (i = 0; i < SHA512_SZ; i++)
 		{
@@ -154,7 +154,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	
 	cs = response->child;
 	
-	for (i = 0; i < rv_len && cs; i++)
+	for (i = 0; i < RAND_SIZE && cs; i++)
 		{
 		if (cs->type != cJSON_Number)
 			break;
@@ -166,7 +166,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	
 	cJSON_Delete(response);
 	
-	if (i < rv_len)
+	if (i < RAND_SIZE)
 		{
 		cJSON_Delete(data);
 		log_msg("Invalid random_response");
@@ -186,7 +186,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *key, unsigned c
 	return RESPONSE_GOOD;
 	}
 
-void get_hash(struct cJSON *data, char *sha_buf, char *key, unsigned char key_len)
+void get_hash(struct cJSON *data, char *sha_buf)
 	{
 	unsigned char i;
 	unsigned long r;
@@ -197,7 +197,7 @@ void get_hash(struct cJSON *data, char *sha_buf, char *key, unsigned char key_le
 	cJSON_Minify(out);
 
 	sha.reset();
-	sha.update(key, key_len);
+	sha.update(key, sizeof(key));
 	sha.update(out, strlen(out));
 	sha.finalize(sha_buf, sha.hashSize());
 	
@@ -210,7 +210,7 @@ char *get_signed_packet(struct cJSON *data)
 	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
 	char *out;
 	
-	get_hash(data, sha_buf, key, sizeof(key));
+	get_hash(data, sha_buf);
 
 	print_hex(sha_buf_out, sha_buf, SHA512_SZ);
 	
@@ -280,7 +280,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	leds_off();
 	log_msg("Response: %s", body);
 
-	i = parse_response(body, result, key, sizeof(key), rand, RAND_SIZE);
+	i = parse_response(body, result, rand);
 	free(body);
 	
 	if (i != RESPONSE_GOOD)
@@ -330,7 +330,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 
 	body = http.getString();
 	log_msg("Response: %s", body.c_str());
-	i = parse_response((char *)body.c_str(), result, key, sizeof(key), rand, RAND_SIZE);
+	i = parse_response((char *)body.c_str(), result, rand);
 	
 	if (i != RESPONSE_GOOD)
 		beep_it(BEEP_PATTERN_PACKET_ERROR);

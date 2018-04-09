@@ -117,7 +117,7 @@ void beep_it(unsigned char pattern_idx)
 	register unsigned char light = pattern->options & 0x03;
 	
 	if (pattern->log_message)
-		log_msg("Beep: ", pattern->log_message);
+		log_msg("Beep: %s", pattern->log_message);
 
 	if (light == GREEN_ALWAYS)
 		LIGHT_GREEN(LIGHT_PIN);
