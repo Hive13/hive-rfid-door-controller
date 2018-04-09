@@ -1,88 +1,96 @@
-#include <Ethernet.h>
-// https://github.com/monkeyboard/Wiegand-Protocol-Library-for-Arduino
-#include <Wiegand.h>
-// The b64 and HttpClient libraries are both in this repository:
-// https://github.com/amcewen/HttpClient
-#include <b64.h>
-#include <HttpClient.h>
-// https://github.com/PaulStoffregen/OneWire
-#include <OneWire.h>
-#include <Adafruit_NeoPixel.h>
-
-#include "leds.h"
+#include "config.h"
 #include "soda_temp.h"
-#include "vend.h"
 #include "log.h"
-#include "API.h"
+#include "http.h"
+#include "ui.h"
 #include "schedule.h"
+#include "network.h"
+#include "scanner.h"
+#include "doorbell.h"
 
-static WIEGAND wg;
-static byte mac[] = {0x90, 0xa2, 0xda, 0x0d, 0x7c, 0x9a};
-static volatile unsigned char sold_out_t = 0;
-static volatile char sold_out_changed = 0;
-static volatile unsigned long sold_out_changed_at = 0;
-unsigned char sold_out = 0;
-void hmac_test(void);
+#ifdef SODA_MACHINE
+#include "vend.h"
+#else
+#ifdef CACHE_BADGES
+static unsigned long usersCache[100];
 
-ISR(PCINT2_vect)
+static void cache_access_handler(unsigned long code)
 	{
-	sold_out_t = PINK;
-	sold_out_changed = 1;
-	sold_out_changed_at = millis();
+	unsigned char badge_ok, cached = 0;
+	unsigned char i;
+	
+	// Check to see if the user has been cached
+	for (i = 0; i < (sizeof(usersCache) / sizeof(usersCache[0])); i++)
+		{
+		if(usersCache[i] == code && usersCache[i] > 0)
+			{
+			log_msg("Verified via cache ok to open door...");
+			cached = 1;
+			open_door();
+			break;
+			}
+		}
+
+	badge_ok = check_badge(code, NULL);
+
+	if (badge_ok)
+		{
+		// We only need to open the door here if it wasn't opened from checking the cache.
+		if (!cached)
+			{
+			open_door();
+			// user is allowed in but hasn't been cached, add them to the cache.
+			Serial.println("Adding user to cache.");
+			for (i = 0; i < (sizeof(usersCache) / sizeof(usersCache[0])); i++)
+				{
+				if (usersCache[i] == 0)
+					{
+					usersCache[i] = code;
+					break;
+					}
+				}
+			}
+		}
+	else if (cached)
+		{
+		// remove them from the cached list as they are not allowed in
+		for (i = 0; i < (sizeof(usersCache) / sizeof(usersCache[0])); i++)
+			if (usersCache[i] == code)
+				usersCache[i] = 0;
+		}
 	}
-
-char handle_ethernet(void *ptr, unsigned long *t, unsigned long m)
+#else
+static void access_handler(unsigned long code)
 	{
-	Ethernet.maintain();
-
-	return SCHEDULE_REDO;
+	check_badge(code, open_door);
 	}
+#endif
+#endif
 
-
-void setup()
+void setup(void)
 	{
-	char kPath[] = "/vendtest";
-
-	cli();
-	PCICR |= 1 << PCIE2;
-	PCMSK2 = 0xFF;
-	sold_out = PINK;
-	sei();
-
 	log_begin(115200);
-	log_msg("Hive13 Vending Arduino Shield v.04");
-	leds_init();
+	ui_init();
+	network_init();
+#ifdef SODA_MACHINE
 	vend_init();
-	log_msg("Initializing Ethernet Controller.");
-	while (Ethernet.begin(mac) != 1)
-		{
-		log_msg("Error obtaining DHCP address.  Let's wait a second and try again.");
-		delay(1000);
-		}
-	schedule(0, handle_ethernet, NULL);
-	
-	wg.begin();
+	scanner_init(handle_vend);
+#else
+#ifdef CACHE_BADGES
+	memset(usersCache, 0, sizeof(usersCache));
+	scanner_init(cache_access_handler);
+#else
+	scanner_init(access_handler);
+#endif
+#endif
+	doorbell_init();
 	soda_temp_init();
+	beep_it(BEEP_PATTERN_START);
 	}
 
-void loop()
+void loop(void)
 	{
-	unsigned long code;
-
 	run_schedule();
-	if (sold_out_changed && sold_out_changed_at < millis() - 250)
-		{
-		sold_out = sold_out_t;
-		log_msg("Sold out: %02hhX", sold_out);
-		sold_out_changed = 0;
-		}
-	
-	if (wg.available())
-		{
-		code = wg.getCode();
-		log_msg("Scanned badge %lu/0x%lX, type W%d", code, code, wg.getWiegandType());
-		handle_vend(code);
-		}
 	}
 
 /* vim:set filetype=c: */

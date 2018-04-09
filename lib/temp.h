@@ -19,6 +19,7 @@ struct temp_sensor
 	unsigned char addr[ONEWIRE_ADDR_SZ];
 	sensor_func *func;
 	char *desc;
+	char *log_name;
 	};
 
 #ifdef __cplusplus

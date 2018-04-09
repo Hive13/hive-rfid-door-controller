@@ -1,4 +1,5 @@
 #include "config.h"
+#include "access_temp.h"
 #include "log.h"
 #include "http.h"
 #include "ui.h"
@@ -83,6 +84,7 @@ void setup(void)
 #endif
 #endif
 	doorbell_init();
+	access_temperature_init();
 	beep_it(BEEP_PATTERN_START);
 	}
 

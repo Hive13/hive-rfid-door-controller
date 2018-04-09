@@ -1,16 +1,13 @@
+#include "config.h"
+
 #include <Arduino.h>
 
 #include "cJSON.h"
-#include "API.h"
 #include "log.h"
 #include "vend.h"
-#include "leds.h"
-#include "temp.h"
+#include "ui.h"
 #include "http.h"
 #include "schedule.h"
-
-unsigned char key[] = {'S', 'o', 'd', 'a', ' ', 'M', 'a', 'c', 'h', 'i', 'n', 'e', '!', '!', '!', '!'};
-char *device = "soda_machine";
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and a diet flag.
@@ -27,7 +24,25 @@ struct soda sodas[] = {
 
 unsigned char soda_count = SODA_COUNT;
 static unsigned char larsen_on = 0;
-extern unsigned char sold_out;
+unsigned char sold_out = 0;
+static volatile unsigned char sold_out_t = 0;
+static void *sold_out_schedule = NULL;
+
+char update_sold_out(volatile unsigned char *ptr, unsigned long *t, unsigned long m)
+	{
+	sold_out = sold_out_t;
+	log_msg("Sold out: %02hhX", sold_out);
+	update_soda_status(sold_out);
+	
+	return SCHEDULE_DONE;
+	}
+
+ISR(PCINT2_vect)
+	{
+	schedule_cancel(sold_out_schedule);
+	sold_out_schedule = schedule(millis() + 250, update_sold_out, &sold_out_t);
+	sold_out_t = PINK;
+	}
 
 void set_vend(char c)
 	{
@@ -111,45 +126,24 @@ void do_random_vend(unsigned char kind)
 
 void handle_vend(unsigned long code)
 	{
-	unsigned char rv;
-	unsigned char cnt = 0;
-
-	rv = can_vend(code);
+	unsigned char rv = can_vend(code);
 	
-	switch (rv)
+	if (rv == RESPONSE_ACCESS_DENIED)
 		{
-		case RESPONSE_GOOD:
-			log_msg("Vending.");
-			digitalWrite(VEND_PIN, LOW);
-			digitalWrite(WIEGAND_LIGHT_PIN, HIGH);
-			digitalWrite(BEEP_PIN, LOW);
-			delay(100);
-			digitalWrite(WIEGAND_LIGHT_PIN, LOW);
-			digitalWrite(BEEP_PIN, HIGH);
-			delay(900);
-			digitalWrite(VEND_PIN, HIGH);
-			return;
-
-		case RESPONSE_ACCESS_DENIED:
-			log_msg("Didn't receive the OK to vend...");
-			leds_all(Color(255, 0, 0));
-			cnt = 5;
-			break;
-
-		default:
-			log_msg("Something went wrong with the network.");
-			leds_all(Color(255, 128, 0));
-			cnt = 10;
-			break;
+		beep_it(BEEP_PATTERN_NO_CREDITS);
+		return;
 		}
-
-	while (cnt--)
-		{
-		digitalWrite(BEEP_PIN, LOW);
-		delay(100);
-		digitalWrite(BEEP_PIN, HIGH);
-		delay(100);		
-		}
+	
+	log_msg("Vending.");
+	leds_all(Color(0, 255, 0));
+	digitalWrite(VEND_PIN, LOW);
+	digitalWrite(WIEGAND_LIGHT_PIN, HIGH);
+	digitalWrite(BEEP_PIN, LOW);
+	delay(100);
+	digitalWrite(WIEGAND_LIGHT_PIN, LOW);
+	digitalWrite(BEEP_PIN, HIGH);
+	delay(900);
+	digitalWrite(VEND_PIN, HIGH);
 	leds_off();
 	}
 
@@ -177,6 +171,13 @@ void vend_init(void)
 		pinMode(sodas[i].relay_pin, OUTPUT);
 		digitalWrite(sodas[i].relay_pin, HIGH);
 		}
+	
+	/* Set up the sold out pins */
+	cli();
+	PCICR |= 1 << PCIE2;
+	PCMSK2 = 0xFF;
+	sold_out = PINK;
+	sei();
 
 	schedule(0, vend_check, NULL);
 	}
@@ -254,49 +255,3 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 	set_vend(pressed);
 	return SCHEDULE_REDO;
 	}
-
-signed char can_vend(unsigned long badge)
-	{
-	static unsigned long scan_count = 0;
-	char *body, *out;
-	struct cJSON *resp, *cs;
-	unsigned char rv[2 * sizeof(unsigned long)];
-	unsigned char rc;
-	unsigned long start = millis();
-
-	memcpy(rv, &start, sizeof(unsigned long));
-	memcpy(rv + sizeof(unsigned long), &scan_count, sizeof(unsigned long));
-	scan_count++;
-
-	out = get_request(badge, "vend", NULL, device, key, sizeof(key), rv, sizeof(rv));
-	log_msg("Sending %s", out);
-
-	rc = http_get_json("intweb.at.hive13.org", "/api/access", out, &body);
-	free(out);
-
-	if (rc != RESPONSE_GOOD)
-		{
-		log_msg("GET failed: %hhd", rc);
-		return rc;
-		}
-
-	log_msg("Body: %s", body);
-
-	rc = parse_response(body, &resp, key, sizeof(key), rv, sizeof(rv));
-	free(body);
-
-	log_msg("rc: %hhd", rc);
-	if (rc != RESPONSE_GOOD)
-		return rc;
-
-	if (!(cs = cJSON_GetObjectItem(resp, "vend")) || cs->type != cJSON_True)
-		{
-		log_msg("Didn't get a vend response back.");
-		cJSON_Delete(resp);
-		return RESPONSE_ACCESS_DENIED;
-		}
-
-	cJSON_Delete(resp);
-	return RESPONSE_GOOD;
-	}
-
