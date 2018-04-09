@@ -124,8 +124,8 @@ void update_soda_status(unsigned char sold_out_mask)
 	
 	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
 	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("soda_status"));
-	cJSON_AddItemToObjectCS(data, "soda_status",     json);
 	add_random_response(data, rand);
+	cJSON_AddItemToObjectCS(data, "soda_status",     json);
 	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
 	
 	i = http_request(data, &result, rand);
