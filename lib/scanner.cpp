@@ -23,6 +23,10 @@ static char handle_scan(scan_handler *h, unsigned long *t, unsigned long m)
 
 void scanner_init(scan_handler *handler)
 	{
+#ifdef PLATFORM_ARDUINO
+	wg.begin(WIEGAND_D0_PIN, digitalPinToInterrupt(WIEGAND_D0_PIN), WIEGAND_D1_PIN, digitalPinToInterrupt(WIEGAND_D1_PIN));
+#else
 	wg.begin(WIEGAND_D0_PIN, WIEGAND_D0_PIN, WIEGAND_D1_PIN, WIEGAND_D1_PIN);
+#endif
 	schedule(0, handle_scan, handler);
 	}
