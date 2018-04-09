@@ -29,9 +29,9 @@ unsigned char can_vend(unsigned long badge)
 		{
 		json = cJSON_GetObjectItem(result, "vend");
 		if (json && json->type == cJSON_True)
-			return RESPONSE_GOOD;
+			i = RESPONSE_GOOD;
 		else
-			return RESPONSE_ACCESS_DENIED;
+			i = RESPONSE_ACCESS_DENIED;
 		cJSON_Delete(result);
 		}
 	return i;
