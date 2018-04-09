@@ -105,7 +105,7 @@ void run_schedule(void)
 			ret = t->func(t->data, &t->time, m);
 			STOP_ISRS();
 
-			if (ret == SCHEDULE_REDO && t->status == STATUS_DELETED)
+			if (ret == SCHEDULE_REDO && t->status != STATUS_DELETED)
 				{
 				t->status = STATUS_SCHEDULED;
 				t = t->next;
