@@ -30,9 +30,12 @@ static void *sold_out_schedule = NULL;
 
 char update_sold_out(volatile unsigned char *ptr, unsigned long *t, unsigned long m)
 	{
-	sold_out = sold_out_t;
-	log_msg("Sold out: %02hhX", sold_out);
-	update_soda_status(sold_out);
+	if (sold_out != sold_out_t)
+		{
+		sold_out = sold_out_t;
+		log_msg("Sold out: %02hhX", sold_out);
+		update_soda_status(sold_out);
+		}
 	
 	return SCHEDULE_DONE;
 	}
