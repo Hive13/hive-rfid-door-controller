@@ -18,6 +18,7 @@
 #include "cJSON.h"
 #include "log.h"
 #include "ui.h"
+#include "network.h"
 
 static char *hex    = "0123456789ABCDEF";
 static char *device = DEVICE;
@@ -299,7 +300,7 @@ void get_rand(char *rand)
 	}
 
 #endif
-#ifdef PLATFORM_ESP
+#ifdef PLATFORM_ESP8266
 static const char host[] = HTTP_HOST;
 
 unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand)
@@ -317,7 +318,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	http.begin(host);
 	http.addHeader("Content-Type", "application/json");
 
-	code = http.POST(request, strlen((char *)request));
+	code = http.POST((unsigned char *)request, strlen(request));
 	free(request);
 
 	if (code != 200)
