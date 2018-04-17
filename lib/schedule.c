@@ -4,7 +4,7 @@
 
 static struct task *task_chain = NULL;
 
-#ifdef ARDUINO_AVR_MEGA2560
+#if defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_UNO)
 #define STOP_ISRS() oldREG = SREG; cli()
 #define START_ISRS() SREG = oldREG
 #else
@@ -26,7 +26,7 @@ void schedule_delete(struct task *t)
 void schedule_cancel(void *ptr)
 	{
 	struct task *t = task_chain;
-#ifdef ARDUINO_AVR_MEGA2560
+#if defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_UNO)
 	unsigned int oldREG;
 #endif
 
@@ -50,7 +50,7 @@ void schedule_cancel(void *ptr)
 
 void *schedule(unsigned long time, time_handler *func, void *ptr)
 	{
-#ifdef ARDUINO_AVR_MEGA2560
+#if defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_UNO)
 	unsigned int oldREG;
 #endif
 	struct task *t = (struct task *)malloc(sizeof(struct task)), *walker = task_chain;
@@ -81,7 +81,7 @@ void *schedule(unsigned long time, time_handler *func, void *ptr)
 
 void run_schedule(void)
 	{
-#ifdef ARDUINO_AVR_MEGA2560
+#if defined(ARDUINO_AVR_MEGA2560) || defined(ARDUINO_AVR_UNO)
 	unsigned int oldREG;
 #endif
 	struct task *t = task_chain, *p;
