@@ -87,6 +87,7 @@ void do_random_vend(unsigned char kind)
 
 	// Display the light show
 	log_msg("Vending random soda!");
+	leds_out(0);
 
 	/* Light show while picking the soda */
 	for (i = 0; i < color_at; i++)
