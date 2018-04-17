@@ -78,13 +78,14 @@ void randomColors(uint8_t wait, uint8_t numberCycles)
 		}
 	}
 
-void leds_off(void)
+void leds_out(unsigned char show)
 	{
 	unsigned char i;
 
 	for(i = 0; i < leds.numPixels(); i++)
 		leds.setPixelColor(i, 0);
-	leds_show(1);
+	if (show--)
+		leds_show(show);
 	}
 
 void leds_all(unsigned long color)
