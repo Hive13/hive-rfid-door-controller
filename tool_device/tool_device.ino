@@ -1,9 +1,12 @@
+#include <LiquidCrystal.h>
 #include "log.h"
 #include "schedule.h"
-#include "network.h"
+#include "lcd.h"
 
 #define SAMPLE_COUNT    140
 volatile unsigned short samples[SAMPLE_COUNT];
+
+LiquidCrystal lcd(8, 9, 10, 4, 5, 6, 7);
 
 ISR(ADC_vect)
 	{
@@ -36,6 +39,47 @@ char display_current(void *ptr, unsigned long *t, unsigned long m)
 	return SCHEDULE_REDO;
 	}
 
+static signed char pos = 0;
+
+#define encoder0PinA  2
+#define encoder0PinB  3
+
+void doEncoderA()
+	{
+	if (digitalRead(encoder0PinA) == HIGH)
+		{
+		if (digitalRead(encoder0PinB) == LOW)
+			pos++;
+    else
+			pos--;
+		}
+  else
+		{
+		if (digitalRead(encoder0PinB) == HIGH)
+			pos++;
+		else
+			pos--;	
+		}
+	}
+
+void doEncoderB()
+	{
+	if (digitalRead(encoder0PinB) == HIGH)
+		{
+		if (digitalRead(encoder0PinA) == HIGH)
+			pos++;
+		else
+			pos--;
+		}
+	else
+		{
+		if (digitalRead(encoder0PinA) == LOW)
+			pos++;
+		else
+			pos--;
+		}
+	}
+
 void setup(void)
 	{
 	unsigned char i, oldREG;
@@ -55,11 +99,25 @@ void setup(void)
 
 	schedule(0, display_current, NULL);
 	log_msg("starting");
+
+	lcd.begin(40, 2);
+	lcd.print("Moo?");
+	attachInterrupt(0, doEncoderA, CHANGE);
+	attachInterrupt(1, doEncoderB, CHANGE);
+
 	}
 
 void loop(void)
 	{
+	static signed char shown_pos = 1;
 	run_schedule();
+	if (pos != shown_pos)
+		{
+		lcd.clear();
+		lcd.print("Sw: ");
+		lcd.print(pos, DEC);
+		shown_pos = pos;
+		}
 	}
 
 /* vim:set filetype=c: */
