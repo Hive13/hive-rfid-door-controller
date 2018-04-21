@@ -41,6 +41,34 @@ char display_current(void *ptr, unsigned long *t, unsigned long m)
 
 static signed char pos = 0;
 
+/*                      _______         _______        
+            Pin1 ______|       |_______|       |______ Pin1 
+  negative <---     _______         _______         __      --> positive
+            Pin2 __|       |_______|       |_______|   Pin2
+
+
+  new  new  old  old 
+  pin2 pin1 pin2 pin1 Result 
+  ---- ---- ---- ---- ------ 
+  0    0    0    0    no movement
+  0    0    0    1    +1
+  0    0    1    0    -1
+  0    0    1    1    +2 (assume pin1 edges only)
+  0    1    0    0    -1
+  0    1    0    1    no movement 
+  0    1    1    0    -2 (assume pin1 edges only)
+  0    1    1    1    +1
+  1    0    0    0    +1
+  1    0    0    1    -2 (assume pin1 edges only)
+  1    0    1    0    no movement
+  1    0    1    1    -1
+  1    1    0    0    +2 (assume pin1 edges only)
+  1    1    0    1    -1
+  1    1    1    0    +1
+  1    1    1    1    no movement
+*/
+
+
 #define encoder0PinA  2
 #define encoder0PinB  3
 
