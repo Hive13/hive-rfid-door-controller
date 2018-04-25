@@ -5,6 +5,7 @@
 
 #define SAMPLE_COUNT    140
 volatile unsigned short samples[SAMPLE_COUNT];
+unsigned short current;
 
 LiquidCrystal lcd(8, 9, 10, 4, 5, 6, 7);
 
@@ -33,79 +34,43 @@ char display_current(void *ptr, unsigned long *t, unsigned long m)
 		scaled = ((signed long)samples[i]) - 512;
 		sum += (scaled * scaled);
 		}
-	rms = ((unsigned long)sqrt(sum / SAMPLE_COUNT)) * 40;
-	log_msg("Measured Current: %lu.%03luA", rms / 1000, rms % 1000);
+	rms = (((unsigned long)sqrt(sum / SAMPLE_COUNT)) * 4) / 10;
+	current = (unsigned short)(rms & 0xffff);
 	*t = m + 1000;
 	return SCHEDULE_REDO;
 	}
 
-static signed char pos = 0;
+static volatile signed char pos = 0;
 
-/*                      _______         _______        
-            Pin1 ______|       |_______|       |______ Pin1 
-  negative <---     _______         _______         __      --> positive
-            Pin2 __|       |_______|       |_______|   Pin2
+static volatile unsigned long pin_a = 0;
+static volatile unsigned long pin_b = 0;
+#define SEPARATION 35
+#define SPACING    50
 
-
-  new  new  old  old 
-  pin2 pin1 pin2 pin1 Result 
-  ---- ---- ---- ---- ------ 
-  0    0    0    0    no movement
-  0    0    0    1    +1
-  0    0    1    0    -1
-  0    0    1    1    +2 (assume pin1 edges only)
-  0    1    0    0    -1
-  0    1    0    1    no movement 
-  0    1    1    0    -2 (assume pin1 edges only)
-  0    1    1    1    +1
-  1    0    0    0    +1
-  1    0    0    1    -2 (assume pin1 edges only)
-  1    0    1    0    no movement
-  1    0    1    1    -1
-  1    1    0    0    +2 (assume pin1 edges only)
-  1    1    0    1    -1
-  1    1    1    0    +1
-  1    1    1    1    no movement
-*/
-
-
-#define encoder0PinA  2
-#define encoder0PinB  3
-
-void doEncoderA()
+ISR(INT0_vect)
 	{
-	if (digitalRead(encoder0PinA) == HIGH)
-		{
-		if (digitalRead(encoder0PinB) == LOW)
-			pos++;
-    else
-			pos--;
-		}
-  else
-		{
-		if (digitalRead(encoder0PinB) == HIGH)
-			pos++;
-		else
-			pos--;	
-		}
+	unsigned long m = millis();
+
+	if (m - pin_a < SPACING)
+		return;
+
+	pin_a = m;
+
+	if (pin_a - pin_b < SEPARATION)
+		pos--;
 	}
 
-void doEncoderB()
+ISR(INT1_vect)
 	{
-	if (digitalRead(encoder0PinB) == HIGH)
-		{
-		if (digitalRead(encoder0PinA) == HIGH)
-			pos++;
-		else
-			pos--;
-		}
-	else
-		{
-		if (digitalRead(encoder0PinA) == LOW)
-			pos++;
-		else
-			pos--;
-		}
+	unsigned long m = millis();
+
+	if (m - pin_b < SPACING)
+		return;
+
+	pin_b = m;
+
+	if (pin_b - pin_a < SEPARATION)
+		pos++;
 	}
 
 void setup(void)
@@ -129,22 +94,29 @@ void setup(void)
 	log_msg("starting");
 
 	lcd.begin(40, 2);
-	lcd.print("Moo?");
-	attachInterrupt(0, doEncoderA, CHANGE);
-	attachInterrupt(1, doEncoderB, CHANGE);
-
+	lcd.print("Moo??");
+	DDRD  &= 0xF3;
+	PORTD |= 0x0C;
+	EICRA = (1 << ISC11) | (1 << ISC01);
+	EIMSK = (1 << INT0) | (1 << INT1);
 	}
 
 void loop(void)
 	{
+	char buf[30];
 	static signed char shown_pos = 1;
+	static unsigned char shown_current = 1;
 	run_schedule();
-	if (pos != shown_pos)
+	if (pos != shown_pos || current != shown_current)
 		{
+		sprintf(buf, "Sw: %hhi", pos);
 		lcd.clear();
-		lcd.print("Sw: ");
-		lcd.print(pos, DEC);
+		lcd.print(buf);
+		sprintf(buf, "Current: %hu.%huA", current / 10, current % 10);
+		lcd.setCursor(0, 1);
+		lcd.print(buf);
 		shown_pos = pos;
+		shown_current = current;
 		}
 	}
 
