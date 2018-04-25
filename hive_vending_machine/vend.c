@@ -217,6 +217,7 @@ void vend_init(void)
 		digitalWrite(sodas[i].relay_pin, HIGH);
 		}
 
+	log_msg("Loading vend data from EEPROM");
 	eeprom_read_block(buf, 0, 4);
 	switch (prom->signature)
 		{
@@ -226,6 +227,7 @@ void vend_init(void)
 				sodas[i].type = prom->soda_type[i];
 			break;
 		default: /* Initialize */
+			log_msg("No data stored, initializing.");
 			prom->signature  = EEPROM_VER1_SIGNATURE;
 			prom->size       = 5 + soda_count;
 			prom->soda_count = soda_count;
