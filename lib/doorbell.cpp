@@ -23,6 +23,8 @@ static EthernetUDP            udp;
 static WiFiUDP                udp;
 #endif
 static IPAddress              mc_ip(239, 72, 49, 51);
+
+#ifdef HAS_DOORBELL_BUZZER
 static volatile unsigned char doorbell_data = 5;
 
 /*
@@ -72,7 +74,9 @@ void ring_doorbell(char send_packet)
 		schedule(millis() + 1000, (time_handler *)doorbell, (void *)&doorbell_data);
 		}
 	}
+#endif
 
+#ifdef HAS_DOORBELL_BUTTON
 void doorbell_isr(void)
 	{
 	static volatile void *doorbell_t = NULL;
@@ -87,6 +91,7 @@ void doorbell_isr(void)
 		doorbell_t = NULL;
 		}
 	}
+#endif
 
 char doorbell_network(char *data, unsigned long *time, unsigned long now)
 	{
