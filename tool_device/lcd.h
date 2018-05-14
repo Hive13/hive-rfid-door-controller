@@ -1,21 +1,22 @@
 #ifndef __LCD_H
 #define __LCD_H
 
-#define LCD_MODE_4BIT
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+#define PIN_LCD_DATA PINL
+#define DDR_LCD_DATA DDRL
+#define PORT_LCD_DATA PORTL
 
-#define PIN_LCD_D7 7
-#define PIN_LCD_D6 6
-#define PIN_LCD_D5 5
-#define PIN_LCD_D4 4
-#define PIN_LCD_RW 9
-#define PIN_LCD_E1 10
-#define PIN_LCD_E2 11
-#define PIN_LCD_RS 8
+#define PIN_LCD_CTRL PINH
+#define DDR_LCD_CTRL DDRH
+#define PORT_LCD_CTRL PORTH
 
-
-
-
+#define PIN_LCD_RS (1 << 3)
+#define PIN_LCD_RW (1 << 4)
+#define PIN_LCD_E1 (1 << 5)
+#define PIN_LCD_E2 (1 << 6)
 
 #define LCD_CHARSTR(x) LCD_CHARSTR1(x)
 #define LCD_CHARSTR2(x) #x
@@ -55,5 +56,12 @@
 /* Don't scroll the screen without an explicit '\n' */
 #define LCD_ATTR_NOASCROLL 0x10
 
+void LCD_init(void);
+void LCD_putch(unsigned char ch, unsigned char e_pin);
+void LCD_putcmd(unsigned char data, unsigned char e_pin);
+
+#ifdef __cplusplus
+};
+#endif
 
 #endif /* __LCD_H */

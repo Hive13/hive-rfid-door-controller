@@ -1,4 +1,3 @@
-#include <LiquidCrystal.h>
 #include "log.h"
 #include "schedule.h"
 #include "lcd.h"
@@ -7,7 +6,7 @@
 volatile unsigned short samples[SAMPLE_COUNT];
 unsigned short current;
 
-LiquidCrystal lcd(8, 9, 10, 4, 5, 6, 7);
+//LiquidCrystal lcd(6, 7, 8, 49, 48, 47, 46, 45, 44, 43, 42);
 
 ISR(ADC_vect)
 	{
@@ -28,6 +27,12 @@ char display_current(void *ptr, unsigned long *t, unsigned long m)
 	unsigned long rms, sum = 0;
 	unsigned char i;
 	signed long scaled;
+	static unsigned char ch = '0';
+
+	LCD_putch(ch, PIN_LCD_E1);
+	LCD_putch(ch++, PIN_LCD_E2);
+	if (ch > '9')
+		ch = '0';
 
 	for (i = 0; i < SAMPLE_COUNT; i++)
 		{
@@ -89,12 +94,13 @@ void setup(void)
 	TCCR1B = (1 < WGM12) | (1 < CS11);
 	TIMSK1 = (1 << OCIE1A);
 	SREG = oldREG;
+	LCD_init();
 
 	schedule(0, display_current, NULL);
 	log_msg("starting");
 
-	lcd.begin(40, 2);
-	lcd.print("Moo??");
+	//lcd.begin(40, 2);
+	//lcd.print("Moo??");
 	DDRD  &= 0xF3;
 	PORTD |= 0x0C;
 	EICRA = (1 << ISC11) | (1 << ISC01);
@@ -110,11 +116,11 @@ void loop(void)
 	if (pos != shown_pos || current != shown_current)
 		{
 		sprintf(buf, "Sw: %hhi", pos);
-		lcd.clear();
-		lcd.print(buf);
+		//lcd.clear();
+		//lcd.print(buf);
 		sprintf(buf, "Current: %hu.%huA", current / 10, current % 10);
-		lcd.setCursor(0, 1);
-		lcd.print(buf);
+		//lcd.setCursor(0, 1);
+		//lcd.print(buf);
 		shown_pos = pos;
 		shown_current = current;
 		}
