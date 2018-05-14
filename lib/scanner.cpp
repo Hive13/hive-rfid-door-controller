@@ -28,5 +28,5 @@ void scanner_init(scan_handler *handler)
 #else
 	wg.begin(WIEGAND_D0_PIN, WIEGAND_D0_PIN, WIEGAND_D1_PIN, WIEGAND_D1_PIN);
 #endif
-	schedule(0, handle_scan, handler);
+	schedule(0, (time_handler *)handle_scan, (void *)handler);
 	}
