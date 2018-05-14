@@ -1,7 +1,17 @@
+#include "config.h"
+
+#include <Arduino.h>
+#ifdef PLATFORM_ARDUINO
 #include <Ethernet.h>
 #include <EthernetUdp.h>
+#endif
+#ifdef PLATFORM_ESP8266
+#include <ESP8266WiFi.h>
+#include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
+#include <WiFiUdp.h>
+#endif
 
-#include "config.h"
 #include "log.h"
 #include "ui.h"
 #include "schedule.h"
@@ -54,12 +64,12 @@ void ring_doorbell(char send_packet)
 	if (send_packet)
 		{
 		doorbell_data = 0;
-		schedule(0, doorbell, &doorbell_data);
+		schedule(0, (time_handler *)doorbell, (void *)&doorbell_data);
 		}
 	else
 		{
 		doorbell_data = 3;
-		schedule(millis() + 1000, doorbell, &doorbell_data);
+		schedule(millis() + 1000, (time_handler *)doorbell, (void *)&doorbell_data);
 		}
 	}
 
@@ -70,10 +80,10 @@ void doorbell_isr(void)
 	unsigned long m = millis();
 
 	if (pressed)
-		doorbell_t = schedule(m + 50, doorbell_holdoff, NULL);
+		doorbell_t = schedule(m + 50, (time_handler *)doorbell_holdoff, NULL);
 	else if (doorbell_t)
 		{
-		schedule_cancel(doorbell_t);
+		schedule_cancel((void *)doorbell_t);
 		doorbell_t = NULL;
 		}
 	}
@@ -119,5 +129,5 @@ void doorbell_init(void)
 #else
 	udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
 #endif
-	schedule(0, doorbell_network, &udp);
+	schedule(0, (time_handler *)doorbell_network, &udp);
 	}
