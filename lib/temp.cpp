@@ -15,7 +15,7 @@ extern char *device;
 
 unsigned char sensor_count;
 
-static OneWire *ds;
+OneWire *ds;
 static unsigned long schedule_interval;
 
 void temperature_init(unsigned char pin, unsigned long interval, struct temp_sensor *sensors, unsigned char count)
@@ -36,11 +36,18 @@ char start_read_temperature(void)
 
 	while (ds->search(look_addr))
 		{
-		/*log_msg("Found %02X %02X %02X %02X %02X %02X %02X %02X",
-			look_addr[0], look_addr[1], look_addr[2], look_addr[3], look_addr[4], look_addr[5], look_addr[6], look_addr[7]);*/
+#ifdef LOG_FOUND_1WIRE
+		log_msg("Found %02X %02X %02X %02X %02X %02X %02X %02X",
+			look_addr[0], look_addr[1], look_addr[2], look_addr[3], look_addr[4], look_addr[5], look_addr[6], look_addr[7]);
+#endif
 		if (OneWire::crc8(look_addr, 7) != look_addr[7])
 			{
 			log_msg("CRC is not valid!");
+			continue;
+			}
+		if (look_addr[0] == 0x29)
+			{
+			log_msg("Found 8-IO latch.");
 			continue;
 			}
 		if (look_addr[0] != 0x10 && look_addr[0] != 0x28)
