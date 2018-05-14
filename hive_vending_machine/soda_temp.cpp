@@ -24,7 +24,7 @@ char soda_temperature_sensor(struct temp_sensor *me, unsigned long temp)
 	return 0;
 	}
 
-struct temp_sensor sensors[] = 
+struct temp_sensor sensors[] =
 	{
 		{
 		.addr     = {0x28, 0xB7, 0xC2, 0x28, 0x07, 0x00, 0x00, 0x2B},
@@ -65,5 +65,5 @@ void temperature_check(void)
 		p = (cur_temp % 20) * 12;
 		color = Color(0 + p, 0, 255 - p);
 		}
-	leds_one(light, color, 0);
+	leds_one(light, color, LEDS_SHOW | LEDS_OTHERS_OFF);
 	}

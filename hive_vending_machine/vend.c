@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <Arduino.h>
+#include <avr/eeprom.h>
 
 #include "cJSON.h"
 #include "log.h"
@@ -9,17 +10,27 @@
 #include "http.h"
 #include "schedule.h"
 
+#define EEPROM_VER1_SIGNATURE 0xD384
+
+struct vend_eeprom
+	{
+	unsigned short size;
+	unsigned short signature;
+	unsigned char  soda_count;
+	unsigned char  soda_type[];
+	};
+
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
-// In a format of switch pin number, relay pin number, and a diet flag.
+// In a format of switch pin number, relay pin number, and a type.
 struct soda sodas[] = {
-	{22, 37, 0},
-	{24, 35, 0},
-	{26, 33, 0},
-	{28, 31, 0},
-	{30, 29, 0},
-	{32, 27, 1},
-	{34, 25, 1},
-	{36, 23, 1},
+	{22, 37, 2},
+	{24, 35, 1},
+	{26, 33, 1},
+	{28, 31, 1},
+	{30, 29, 1},
+	{32, 27, 2},
+	{34, 25, 2},
+	{36, 23, 3},
 };
 
 unsigned char soda_count = SODA_COUNT;
@@ -36,7 +47,7 @@ char update_sold_out(volatile unsigned char *ptr, unsigned long *t, unsigned lon
 		log_msg("Sold out: %02hhX", sold_out);
 		update_soda_status(sold_out);
 		}
-	
+
 	return SCHEDULE_DONE;
 	}
 
@@ -45,6 +56,36 @@ ISR(PCINT2_vect)
 	schedule_cancel(sold_out_schedule);
 	sold_out_schedule = schedule(millis() + 250, update_sold_out, &sold_out_t);
 	sold_out_t = PINK;
+	}
+
+void type_display(void)
+	{
+	unsigned char i;
+	unsigned long color;
+
+	leds_out(0);
+	for (i = 0; i < soda_count; i++)
+		{
+		switch (sodas[i].type)
+			{
+			case KIND_DIET:
+				color = Color(255, 0, 0);
+				break;
+			case KIND_REGULAR:
+				color = Color(0, 255, 0);
+				break;
+			case KIND_BEER:
+				color = Color(255, 255, 0);
+				break;
+			case KIND_WATER:
+				color = Color(255, 255, 255);
+				break;
+			default:
+				color = 0;
+			}
+		leds_one(i, color, 0);
+		}
+	leds_one(-1, 0, LEDS_SHOW);
 	}
 
 void set_vend(char c)
@@ -76,7 +117,7 @@ void set_vend(char c)
 	else
 		{
 		cur_color = Wheel(color_at++);
-		leds_one(c, cur_color, 1);
+		leds_one(c, cur_color, LEDS_OTHERS_OFF | LEDS_SHOW | LEDS_SOLD_OUT);
 		}
 	}
 
@@ -104,9 +145,7 @@ void do_random_vend(unsigned char kind)
 				continue;
 			if (kind == KIND_ANY)
 				break;
-			else if (kind == KIND_DIET && sodas[randomSoda].diet)
-				break;
-			else if (kind == KIND_REGULAR && !sodas[randomSoda].diet)
+			else if (kind == sodas[randomSoda].type)
 				break;
 			}
 		leds_random(randomSoda);
@@ -122,7 +161,7 @@ void do_random_vend(unsigned char kind)
 	while (millis() < stop_at)
 		{
 		randomSodaColor = Wheel(color_at++);
-		leds_one(randomSoda, randomSodaColor, 1);
+		leds_one(randomSoda, randomSodaColor, LEDS_SHOW | LEDS_OTHERS_OFF | LEDS_SOLD_OUT);
 		}
 
 	leds_off();
@@ -131,13 +170,13 @@ void do_random_vend(unsigned char kind)
 void handle_vend(unsigned long code)
 	{
 	unsigned char rv = can_vend(code);
-	
+
 	if (rv == RESPONSE_ACCESS_DENIED)
 		{
 		beep_it(BEEP_PATTERN_NO_CREDITS);
 		return;
 		}
-	
+
 	log_msg("Vending.");
 	leds_all(Color(0, 255, 0));
 	digitalWrite(VEND_PIN, LOW);
@@ -154,6 +193,8 @@ void handle_vend(unsigned long code)
 void vend_init(void)
 	{
 	unsigned char i;
+	unsigned char buf[128];
+	struct vend_eeprom *prom = buf;
 
 	DDRK = 0;
 	PORTK = 0xFF;
@@ -175,7 +216,28 @@ void vend_init(void)
 		pinMode(sodas[i].relay_pin, OUTPUT);
 		digitalWrite(sodas[i].relay_pin, HIGH);
 		}
-	
+
+	log_msg("Loading vend data from EEPROM");
+	eeprom_read_block(buf, 0, 4);
+	switch (prom->signature)
+		{
+		case EEPROM_VER1_SIGNATURE:
+			eeprom_read_block(buf + 4, 4, prom->size - 4);
+			for (i = 0; i < soda_count; i++)
+				sodas[i].type = prom->soda_type[i];
+			break;
+		default: /* Initialize */
+			log_msg("No data stored, initializing.");
+			prom->signature  = EEPROM_VER1_SIGNATURE;
+			prom->size       = 5 + soda_count;
+			prom->soda_count = soda_count;
+			memset(prom->soda_type, 0, soda_count);
+			for (i = 0; i < soda_count; i++)
+				prom->soda_type[i] = sodas[i].type;
+			eeprom_write_block(buf, 0, prom->size);
+			break;
+		}
+
 	/* Set up the sold out pins */
 	cli();
 	PCICR |= 1 << PCIE2;
@@ -200,7 +262,7 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 		if (!digitalRead(sodas[i].switch_pin))
 			mask |= 1;
 		}
-	
+
 	if (prev_mask != mask)
 		{
 		prev_mask = mask;
@@ -212,7 +274,7 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 		debounce_count++;
 		mask = 0;
 		}
-	
+
 	if (!mask)
 		;
 	else if (mask == 0x05)
@@ -234,6 +296,11 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 		larsen_on = 1;
 	else if (mask == 0x0A)
 		larsen_on = 0;
+	else if (mask == 0x18)
+		{
+		type_display();
+		return SCHEDULE_REDO;
+		}
 	else if (mask == (1 << RANDOM_SODA_NUMBER))
 		do_random_vend(KIND_ANY);
 	else if (mask == 0x30)
