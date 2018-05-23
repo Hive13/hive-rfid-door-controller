@@ -132,7 +132,7 @@ void doorbell_init(void)
 #ifdef PLATFORM_ARDUINO
 	udp.beginMulticast(mc_ip, MULTICAST_PORT);
 #else
-	udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
+	//udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
 #endif
-	schedule(0, (time_handler *)doorbell_network, &udp);
+	//schedule(0, (time_handler *)doorbell_network, &udp);
 	}

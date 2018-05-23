@@ -3,21 +3,22 @@
 
 #include "config.h"
 #include "leds.h"
+#include "output.h"
 
 #ifdef LIGHT_INV
-#define LIGHT_RED(pin)   digitalWrite((pin), LOW)
-#define LIGHT_GREEN(pin) digitalWrite((pin), HIGH)
+#define LIGHT_RED()   set_output(OUTPUT_SCANNER_LIGHT, LOW)
+#define LIGHT_GREEN() set_output(OUTPUT_SCANNER_LIGHT, HIGH)
 #else
-#define LIGHT_RED(pin)   digitalWrite((pin), HIGH)
-#define LIGHT_GREEN(pin) digitalWrite((pin), LOW)
+#define LIGHT_RED()   set_output(OUTPUT_SCANNER_LIGHT, HIGH)
+#define LIGHT_GREEN() set_output(OUTPUT_SCANNER_LIGHT, LOM)
 #endif
 
 #ifdef BEEP_INV
-#define BEEP_ON  HIGH
-#define BEEP_OFF LOW
+#define BEEP_ON  1
+#define BEEP_OFF 0
 #else
-#define BEEP_ON  LOW
-#define BEEP_OFF HIGH
+#define BEEP_ON  0
+#define BEEP_OFF 1
 #endif
 
 #define OPEN_IDLE        0

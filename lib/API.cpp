@@ -228,7 +228,7 @@ char *get_signed_packet(struct cJSON *data)
 #ifdef PLATFORM_ARDUINO
 unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand)
 	{
-	char *body, *request;
+	char body[1024], *request;
 	EthernetClient ec;
 	HttpClient hc(ec);
 	int err, body_len;
@@ -256,7 +256,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	if (err != 200)
 		return RESPONSE_BAD_HTTP;
 	body_len = hc.contentLength();
-	body = malloc(body_len + 1);
+	//body = malloc(body_len + 1);
 
 	if (hc.skipResponseHeaders() > 0)
 		{
@@ -282,7 +282,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	log_msg("Response: %s", body);
 
 	i = parse_response(body, result, rand);
-	free(body);
+	//free(body);
 	
 	if (i != RESPONSE_GOOD)
 		beep_it(BEEP_PATTERN_PACKET_ERROR);

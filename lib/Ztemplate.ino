@@ -7,6 +7,7 @@
 #include "network.h"
 #include "scanner.h"
 #include "doorbell.h"
+#include "output.h"
 
 #ifdef SODA_MACHINE
 #include "vend.h"
@@ -70,6 +71,7 @@ static void access_handler(unsigned long code)
 void setup(void)
 	{
 	log_begin(115200);
+	output_init();
 	ui_init();
 	network_init();
 #ifdef SODA_MACHINE

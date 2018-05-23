@@ -15,6 +15,7 @@
 #include "schedule.h"
 #include "http.h"
 #include "leds.h"
+#include "output.h"
 
 #ifdef PLATFORM_ARDUINO
 static byte mac[] = MAC;
@@ -65,7 +66,7 @@ void network_init(void)
 	while ((status = WiFi.status()) != WL_CONNECTED)
 		{
 		i = !i;
-		digitalWrite(LIGHT_PIN, i);
+		set_output(OUTPUT_SCANNER_LIGHT, i);
 		log_progress("{%i}", status);
 		delay(250);
 		}

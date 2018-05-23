@@ -3,6 +3,7 @@
 #include "ui.h"
 #include "log.h"
 #include "schedule.h"
+#include "output.h"
 
 static struct beep_pattern patterns[] = {
 	{ /* BEEP_PATTERN_INIT */
@@ -72,7 +73,7 @@ static struct beep_pattern patterns[] = {
 
 struct door_open
 	{
-	unsigned int  beep_pin, light_pin, door_pin, open_pin;
+	unsigned int  open_pin;
 	unsigned char beep_state, cycles, status;
 	};
 
@@ -83,12 +84,12 @@ static char led_flicker(void *data, unsigned long *time, unsigned long now)
 	if (!c)
 		{
 		*time = now + 50;
-		LIGHT_GREEN(LIGHT_PIN);
+		LIGHT_GREEN();
 		}
 	else
 		{
 		*time = now + 2500;
-		LIGHT_RED(LIGHT_PIN);
+		LIGHT_RED();
 		}
 	c = !c;
 	return SCHEDULE_REDO;
@@ -96,13 +97,10 @@ static char led_flicker(void *data, unsigned long *time, unsigned long now)
 
 void ui_init(void)
 	{
-	digitalWrite(BEEP_PIN,  BEEP_OFF);
-	digitalWrite(DOOR_PIN,  HIGH);
-	LIGHT_RED(LIGHT_PIN);
+	set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
+	set_output(OUTPUT_DOOR_LATCH,     1);
+	LIGHT_RED();
 	
-	pinMode(BEEP_PIN,  OUTPUT);
-	pinMode(DOOR_PIN,  OUTPUT);
-	pinMode(LIGHT_PIN, OUTPUT);
 	pinMode(OPEN_PIN,  INPUT_PULLUP);
 
 	leds_init();
@@ -120,9 +118,9 @@ void beep_it(unsigned char pattern_idx)
 		log_msg("Beep: %s", pattern->log_message);
 
 	if (light == GREEN_ALWAYS)
-		LIGHT_GREEN(LIGHT_PIN);
+		LIGHT_GREEN();
 	else if (light == RED_ALWAYS)
-		LIGHT_RED(LIGHT_PIN);
+		LIGHT_RED();
 
 	while (i < pattern->cycle_count)
 		{
@@ -133,20 +131,20 @@ void beep_it(unsigned char pattern_idx)
 			}
 		leds_all(pattern->beep_color);
 		if (light == RED_WITH_BEEP)
-			LIGHT_RED(LIGHT_PIN);
+			LIGHT_RED();
 		else if (light == GREEN_WITH_BEEP)
-			LIGHT_GREEN(LIGHT_PIN);
-		digitalWrite(BEEP_PIN, BEEP_ON);
+			LIGHT_GREEN();
+		set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 		delay(pattern->beep_ms);
-		digitalWrite(BEEP_PIN, BEEP_OFF);
+		set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
 		if (light == RED_WITH_BEEP)
-			LIGHT_GREEN(LIGHT_PIN);
+			LIGHT_GREEN();
 		else if (light == GREEN_WITH_BEEP)
-			LIGHT_RED(LIGHT_PIN);
+			LIGHT_RED();
 		}
 	
 	/* Always leave the light in this state when idle */
-	LIGHT_RED(LIGHT_PIN);
+	LIGHT_RED();
 	leds_off();
 	}
 
@@ -155,8 +153,8 @@ static char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 	unsigned char c;
 	
 	d->beep_state = !d->beep_state;
-	digitalWrite(d->beep_pin,  d->beep_state);
-	digitalWrite(d->light_pin, d->beep_state);
+	set_output(OUTPUT_SCANNER_BEEPER, d->beep_state);
+	set_output(OUTPUT_SCANNER_LIGHT,  d->beep_state);
 
 	if (--(d->cycles))
 		{
@@ -167,9 +165,9 @@ static char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 			return SCHEDULE_REDO;
 			}
 		}
-	digitalWrite(d->door_pin,  HIGH);
-	digitalWrite(d->beep_pin,  BEEP_OFF);
-	LIGHT_RED(d->light_pin);
+	set_output(OUTPUT_DOOR_LATCH,     HIGH);
+	set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
+	LIGHT_RED();
 	d->status = OPEN_IDLE;
 	return SCHEDULE_DONE;
 	}
@@ -178,9 +176,6 @@ void open_door(void)
 	{
 	static struct door_open d =
 		{
-		beep_pin:   BEEP_PIN,
-		light_pin:  LIGHT_PIN,
-		door_pin:   DOOR_PIN,
 		open_pin:   OPEN_PIN,
 		beep_state: 0,
 		cycles:     0,
@@ -193,7 +188,7 @@ void open_door(void)
 	if (d.status == OPEN_IDLE)
 		{
 		d.status = OPEN_IN_PROGRESS;
-		digitalWrite(d.door_pin, LOW);
+		set_output(OUTPUT_DOOR_LATCH, LOW);
 		schedule(millis() + 100, (time_handler *)close_door, &d);
 		}
 	}

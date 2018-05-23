@@ -7,8 +7,6 @@
 
 #define LED_PIN   6
 
-#define DOOR_PIN  6
-#define LIGHT_PIN 13
 #ifndef BEEP_PIN
 #define BEEP_PIN  12
 #endif
@@ -25,11 +23,6 @@
 #else
 #ifdef PLATFORM_ESP8266
 
-#define DOOR_PIN  D4
-#define LIGHT_PIN D0
-#ifndef BEEP_PIN
-#define BEEP_PIN  D8
-#endif
 #define OPEN_PIN  D3
 #define WIEGAND_D0_PIN    D1
 #define WIEGAND_D1_PIN    D2
