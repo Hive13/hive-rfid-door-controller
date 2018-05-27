@@ -6,11 +6,13 @@
 #include "output.h"
 
 #ifdef LIGHT_INV
+#define LIGHT_INIT 0
 #define LIGHT_RED()   set_output(OUTPUT_SCANNER_LIGHT, LOW)
 #define LIGHT_GREEN() set_output(OUTPUT_SCANNER_LIGHT, HIGH)
 #else
+#define LIGHT_INIT 1
 #define LIGHT_RED()   set_output(OUTPUT_SCANNER_LIGHT, HIGH)
-#define LIGHT_GREEN() set_output(OUTPUT_SCANNER_LIGHT, LOM)
+#define LIGHT_GREEN() set_output(OUTPUT_SCANNER_LIGHT, LOW)
 #endif
 
 #ifdef BEEP_INV
@@ -19,6 +21,14 @@
 #else
 #define BEEP_ON  0
 #define BEEP_OFF 1
+#endif
+
+#ifdef DOOR_LOCK_INV
+#define DOOR_LOCKED   1
+#define DOOR_UNLOCKED 0
+#else
+#define DOOR_LOCKED   0
+#define DOOR_UNLOCKED 1
 #endif
 
 #define OPEN_IDLE        0

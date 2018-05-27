@@ -97,10 +97,6 @@ static char led_flicker(void *data, unsigned long *time, unsigned long now)
 
 void ui_init(void)
 	{
-	set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
-	set_output(OUTPUT_DOOR_LATCH,     1);
-	LIGHT_RED();
-	
 	pinMode(OPEN_PIN,  INPUT_PULLUP);
 
 	leds_init();
@@ -165,7 +161,7 @@ static char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 			return SCHEDULE_REDO;
 			}
 		}
-	set_output(OUTPUT_DOOR_LATCH,     HIGH);
+	set_output(OUTPUT_DOOR_LATCH,     DOOR_LOCKED);
 	set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
 	LIGHT_RED();
 	d->status = OPEN_IDLE;
@@ -188,7 +184,7 @@ void open_door(void)
 	if (d.status == OPEN_IDLE)
 		{
 		d.status = OPEN_IN_PROGRESS;
-		set_output(OUTPUT_DOOR_LATCH, LOW);
+		set_output(OUTPUT_DOOR_LATCH, DOOR_UNLOCKED);
 		schedule(millis() + 100, (time_handler *)close_door, &d);
 		}
 	}

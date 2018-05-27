@@ -30,6 +30,7 @@ extern "C" {
 struct output
 	{
 	unsigned char type;
+	unsigned char init;
 	unsigned char pin;
 	union
 		{
@@ -43,7 +44,7 @@ struct output
 	};
 
 void set_output(unsigned char output, unsigned char state);
-void output_init(void);
+void output_init(unsigned char pin);
 
 #ifdef __cplusplus
 };

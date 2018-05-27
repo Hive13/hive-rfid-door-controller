@@ -9,12 +9,19 @@ extern OneWire *ds;
 extern struct output outputs[];
 extern unsigned char output_count;
 
-void output_init(void)
+void output_init(unsigned char pin)
 	{
-	struct output *o = outputs;
+	unsigned char i;
+	struct output *o;
 
-	for (; o < outputs + output_count; o++)
+	if (!ds)
+		ds = new OneWire(pin);
+
+	for (i = 0; i < output_count; i++)
 		{
+		o = outputs + i;
+		log_msg("Init %u %u", i, o->init);
+		set_output(i, o->init);
 		switch (o->type)
 			{
 			case OUTPUT_TYPE_ARDUINO:
@@ -23,6 +30,8 @@ void output_init(void)
 				break;
 			case OUTPUT_TYPE_AVR:
 				*(o->data.avr.port) |= (1 << o->pin);
+				break;
+			case OUTPUT_TYPE_DS2408:
 				break;
 			default:
 				break;
@@ -35,8 +44,6 @@ void set_output(unsigned char output_num, unsigned char state)
 	{
 	struct output *o = outputs + output_num;
 	unsigned char mask;
-
-	log_msg("setting output %u to %u", output_num, state);
 
 	if (o->type == OUTPUT_TYPE_ARDUINO)
 		digitalWrite(o->pin, state);
@@ -57,6 +64,25 @@ void set_output(unsigned char output_num, unsigned char state)
 		}
 	else if (o->type == OUTPUT_TYPE_DS2408)
 		{
+		ds->reset();
+		ds->select(o->data.ds2408_addr);
+		ds->write(0xF0, 1);
+		ds->write(0x88, 1);
+		ds->write(0x00, 1);
+		mask = ds->read();
+		if (state)
+			mask &= ~(1 << o->pin);
+		else
+			mask |= (1 << o->pin);
+		ds->reset();
+		ds->select(o->data.ds2408_addr);
+		ds->write(0x5A, 1);
+		ds->write(mask, 1);
+		ds->write(~mask, 1);
+		if (ds->read() != 0xAA)
+			log_msg("Write failed.");
+		else
+			ds->read();
 		}
 	}
 

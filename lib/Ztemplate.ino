@@ -71,7 +71,7 @@ static void access_handler(unsigned long code)
 void setup(void)
 	{
 	log_begin(115200);
-	output_init();
+	output_init(TEMPERATURE_PIN);
 	ui_init();
 	network_init();
 #ifdef SODA_MACHINE

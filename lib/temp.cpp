@@ -15,13 +15,14 @@ extern char *device;
 
 unsigned char sensor_count;
 
-OneWire *ds;
+OneWire *ds = NULL;
 static unsigned long schedule_interval;
 
 void temperature_init(unsigned char pin, unsigned long interval, struct temp_sensor *sensors, unsigned char count)
 	{
 	log_msg("Initializing temperature controller.");
-	ds = new OneWire(pin);
+	if (!ds)
+		ds = new OneWire(pin);
 
 	sensor_count      = count;
 	schedule_interval = interval;
