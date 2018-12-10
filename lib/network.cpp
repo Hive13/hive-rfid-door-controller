@@ -14,8 +14,10 @@
 #include "log.h"
 #include "schedule.h"
 #include "http.h"
+#ifndef NO_SCANNER
 #include "leds.h"
 #include "output.h"
+#endif
 
 #ifdef PLATFORM_ARDUINO
 static byte mac[] = MAC;
@@ -65,8 +67,10 @@ void network_init(void)
 	log_progress("[%i]", status);
 	while ((status = WiFi.status()) != WL_CONNECTED)
 		{
+#ifndef NO_SCANNER
 		i = !i;
 		set_output(OUTPUT_SCANNER_LIGHT, i);
+#endif
 		log_progress("{%i}", status);
 		delay(250);
 		}

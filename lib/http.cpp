@@ -6,7 +6,9 @@
 #include "cJSON.h"
 #include "API.h"
 #include "log.h"
+#ifndef NO_SCANNER
 #include "ui.h"
+#endif
 
 extern char nonce[33];
 static char *location = LOCATION;
@@ -63,7 +65,9 @@ unsigned char check_badge(unsigned long badge_num, void (*success)(void))
 		else
 			{
 			log_msg("Access denied.");
+#ifndef NO_SCANNER
 			beep_it(BEEP_PATTERN_INVALID_CARD);
+#endif
 			i = 0;
 			}
 		cJSON_Delete(result);

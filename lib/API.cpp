@@ -17,7 +17,9 @@
 #include "http.h"
 #include "cJSON.h"
 #include "log.h"
+#ifndef NO_SCANNER
 #include "ui.h"
+#endif
 #include "network.h"
 
 static char *hex    = "0123456789ABCDEF";
@@ -284,8 +286,10 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	i = parse_response(body, result, rand);
 	//free(body);
 	
+#ifndef NO_SCANNER
 	if (i != RESPONSE_GOOD)
 		beep_it(BEEP_PATTERN_PACKET_ERROR);
+#endif
 		
 	return i;
 	}
@@ -324,7 +328,9 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	if (code != 200)
 		{
 		log_msg("Got response back: %i", code);
+#ifndef NO_SCANNER
 		beep_it(BEEP_PATTERN_NETWORK_ERROR);
+#endif
 		wifi_error();
 		return RESPONSE_BAD_HTTP;
 		}
@@ -333,8 +339,10 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	log_msg("Response: %s", body.c_str());
 	i = parse_response((char *)body.c_str(), result, rand);
 	
+#ifndef NO_SCANNER
 	if (i != RESPONSE_GOOD)
 		beep_it(BEEP_PATTERN_PACKET_ERROR);
+#endif
 		
 	return i;
 	}
