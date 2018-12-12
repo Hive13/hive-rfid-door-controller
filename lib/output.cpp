@@ -11,7 +11,7 @@ extern unsigned char output_count;
 
 void output_init(unsigned char pin)
 	{
-	unsigned char i;
+	unsigned char i, j;
 	struct output *o;
 
 	if (!ds)
@@ -20,6 +20,15 @@ void output_init(unsigned char pin)
 	for (i = 0; i < output_count; i++)
 		{
 		o = outputs + i;
+		if (o->type == OUTPUT_TYPE_DS2408)
+			{
+			ds->reset();
+			ds->write(0x96, 1);
+			for (j = 0; j < 8; j++)
+				ds->write(o->data.ds2408_addr[j], 1);
+			ds->write(0x3C, 1);
+			ds->reset();
+			}
 		log_msg("Init %u %u", i, o->init);
 		set_output(i, o->init);
 		switch (o->type)

@@ -24,11 +24,10 @@
 #ifdef PLATFORM_ESP8266
 
 #define OPEN_PIN  D3
-#define WIEGAND_D0_PIN    D1
-#define WIEGAND_D1_PIN    D2
+#define WIEGAND_D0_PIN    D2
+#define WIEGAND_D1_PIN    D1
 
-#define TEMPERATURE_PIN D5
-#define TEMPERATURE_POKE_PIN D6
+#define TEMPERATURE_PIN D6
 
 #define LIGHT_INV
 #define BEEP_INV
