@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 void network_init(void);
+void register_mc(char header[], void *ptr);
 
 #ifdef PLATFORM_ESP8266
 void wifi_error(void);

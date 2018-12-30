@@ -17,14 +17,13 @@
 #include "http.h"
 #include "cJSON.h"
 #include "log.h"
+#include "eeprom_lib.h"
 #ifndef NO_SCANNER
 #include "ui.h"
 #endif
 #include "network.h"
 
-static char *hex    = "0123456789ABCDEF";
-static char *device = DEVICE;
-static char key[]   = KEY;
+static char *hex = "0123456789ABCDEF";
 char nonce[33];
 
 unsigned char val(char *i)
@@ -200,7 +199,7 @@ void get_hash(struct cJSON *data, char *sha_buf)
 	cJSON_Minify(out);
 
 	sha.reset();
-	sha.update(key, sizeof(key));
+	sha.update(config->key, sizeof(config->key));
 	sha.update(out, strlen(out));
 	sha.finalize(sha_buf, sha.hashSize());
 	
@@ -218,7 +217,7 @@ char *get_signed_packet(struct cJSON *data)
 	print_hex(sha_buf_out, sha_buf, SHA512_SZ);
 	
 	cJSON_AddItemToObjectCS(root, "data", data);
-	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(device));
+	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(config->name));
 	cJSON_AddItemToObjectCS(root, "checksum", cJSON_CreateString(sha_buf_out));
 	
 	out = cJSON_Print(root);

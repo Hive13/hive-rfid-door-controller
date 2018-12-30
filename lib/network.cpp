@@ -34,11 +34,59 @@ char handle_ethernet(void *ptr, unsigned long *t, unsigned long m)
 #ifdef PLATFORM_ESP8266
 static char *ssid = WIFI_SSID;
 static char *pass = WIFI_PASS;
+static WiFiUDP udp;
+static IPAddress mc_ip(239, 72, 49, 51);
+
+struct mc_operation
+	{
+	unsigned char header[8];
+	void *ptr;
+	} mc_ops[8];
 
 void wifi_error(void)
 	{
 	WiFi.disconnect(1);
 	network_init();
+	}
+
+void register_mc(char header[], void *ptr)
+	{
+	unsigned char i;
+
+	for (i = 0; i < (sizeof(mc_ops) / sizeof(mc_ops[0])); i++)
+		if (!mc_ops[i].ptr)
+			{
+			memmove(mc_ops[i].header, header, 8);
+			mc_ops[i].ptr = ptr;
+			break;
+			}
+	}
+
+static char handle_mc(WiFiUDP *u, unsigned long *time, unsigned long now)
+	{
+	char buffer[256];
+	int sz;
+	unsigned char i;
+
+	*time = now + 100;
+	sz = u->parsePacket();
+	if (!sz)
+		return SCHEDULE_REDO;
+
+	if (sz >= 8 && u->destinationIP() == mc_ip
+		&& (sz = udp.read(buffer, sizeof(buffer))) >= 8)
+		{
+		for (i = 0; i < (sizeof(mc_ops) / sizeof(mc_ops[0])); i++)
+			{
+			if (!mc_ops[i].ptr)
+				continue;
+			if (!memcmp(buffer, mc_ops[i].header, 8))
+				schedule(0, (time_handler *)mc_ops[i].ptr, NULL);
+			}
+		}
+
+	u->flush();
+	return SCHEDULE_REDO;
 	}
 #endif
 
@@ -54,7 +102,7 @@ void network_init(void)
 		}
 	schedule(0, handle_ethernet, NULL);
 	leds_off();
-	
+
 	/* Do it twice for Arduino because the first request times out. */
 	update_nonce();
 #endif
@@ -62,6 +110,7 @@ void network_init(void)
 	int status;
 	unsigned char i = 0;
 
+	memset(mc_ops, 0, sizeof(mc_ops));
 	log_progress_start("Connecting to SSID %s", ssid);
 	status = WiFi.begin(ssid, pass);
 	log_progress("[%i]", status);
@@ -77,6 +126,8 @@ void network_init(void)
 	log_progress_end("connected!");
 	WiFi.setAutoConnect(1);
 	WiFi.setAutoReconnect(1);
+	udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
+	schedule(0, (time_handler *)handle_mc, &udp);
 #endif
 	update_nonce();
 	}
