@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-struct cJSON *get_light_state(void);
+void lights_init(void);
 
 #ifdef __cplusplus
 }
