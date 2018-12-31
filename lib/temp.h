@@ -12,7 +12,7 @@ extern "C" {
 typedef char (sensor_func)(struct temp_sensor *, unsigned long);
 
 char handle_temperature(struct temp_sensor *sensors, unsigned long *t, unsigned long m);
-void temperature_init(unsigned char pin, unsigned long interval, struct temp_sensor *sensors, unsigned char count);
+void temperature_init(unsigned long interval, struct temp_sensor *sensors, unsigned char count);
 
 struct temp_sensor
 	{

@@ -6,6 +6,7 @@
 #include "network.h"
 #include "scanner.h"
 #include "doorbell.h"
+#include "output.h"
 #include "eeprom_lib.h"
 
 #ifdef SODA_MACHINE
@@ -16,6 +17,7 @@ void setup(void)
 	{
 	log_begin(115200);
 	eeprom_init();
+	output_init();
 	ui_init();
 	network_init();
 #ifdef SODA_MACHINE

@@ -18,7 +18,7 @@ void setup(void)
 	{
 	log_begin(115200);
 	eeprom_init();
-	output_init(TEMPERATURE_PIN);
+	output_init();
 	ui_init();
 	network_init();
 #ifdef SODA_MACHINE

@@ -12,17 +12,14 @@
 
 extern unsigned char key[16];
 extern char *device;
+extern OneWire *ds = NULL;
 
 unsigned char sensor_count;
-
-OneWire *ds = NULL;
 static unsigned long schedule_interval;
 
-void temperature_init(unsigned char pin, unsigned long interval, struct temp_sensor *sensors, unsigned char count)
+void temperature_init(unsigned long interval, struct temp_sensor *sensors, unsigned char count)
 	{
 	log_msg("Initializing temperature controller.");
-	if (!ds)
-		ds = new OneWire(pin);
 
 	sensor_count      = count;
 	schedule_interval = interval;

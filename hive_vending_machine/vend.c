@@ -8,6 +8,7 @@
 #include "ui.h"
 #include "http.h"
 #include "schedule.h"
+#include "output.h"
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number, relay pin number, and a diet flag.
@@ -140,14 +141,14 @@ void handle_vend(unsigned long code)
 	
 	log_msg("Vending.");
 	leds_all(Color(0, 255, 0));
-	digitalWrite(VEND_PIN, LOW);
-	digitalWrite(WIEGAND_LIGHT_PIN, HIGH);
-	digitalWrite(BEEP_PIN, LOW);
+	set_output(OUTPUT_VEND_RELAY, 0);
+	LIGHT_GREEN();
+	set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 	delay(100);
-	digitalWrite(WIEGAND_LIGHT_PIN, LOW);
-	digitalWrite(BEEP_PIN, HIGH);
+	set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
+	LIGHT_RED();
 	delay(900);
-	digitalWrite(VEND_PIN, HIGH);
+	set_output(OUTPUT_VEND_RELAY, 1);
 	leds_off();
 	}
 
@@ -158,12 +159,6 @@ void vend_init(void)
 	DDRK = 0;
 	PORTK = 0xFF;
 
-	pinMode(VEND_PIN, OUTPUT);
-	pinMode(WIEGAND_LIGHT_PIN, OUTPUT);
-	pinMode(BEEP_PIN, OUTPUT);
-	digitalWrite(VEND_PIN, HIGH);
-	digitalWrite(WIEGAND_LIGHT_PIN, LOW);
-	digitalWrite(BEEP_PIN, HIGH);
 	/*
 		Set soda button switch pins to input and pull them high
 		Set soda relay pins to output
@@ -193,7 +188,7 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 	static unsigned char prev_mask = 0, debounce_count;
 
 	// Cycle through all eight buttons, check their values, and do the appropriate event
-	digitalWrite(BEEP_PIN, HIGH);
+	set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
 	for (i = soda_count - 1; i < soda_count; i--)
 		{
 		mask <<= 1;
@@ -219,7 +214,7 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 		{
 		if (sold_out & 0x10)
 			{
-			digitalWrite(BEEP_PIN, LOW);
+			set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 			pressed = -1;
 			}
 		else
@@ -246,7 +241,7 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 		{
 		if (mask & sold_out)
 			{
-			digitalWrite(BEEP_PIN, LOW);
+			set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 			pressed = -1;
 			}
 		else

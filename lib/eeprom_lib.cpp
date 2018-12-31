@@ -71,6 +71,7 @@ void eeprom_init(void)
 		return;
 
 	/* Doesn't match; load from code */
+	config->onewire_pin = ONEWIRE_PIN;
 	memmove(config->key, key, sizeof(config->key));
 	memset(config->name, 0, sizeof(config->name));
 	memset(config->bulbs, 1, sizeof(config->bulbs));

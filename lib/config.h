@@ -17,7 +17,7 @@
 #define BUZZER_PIN   19
 #define DOORBELL_BUTTON_PIN 18
 
-#define TEMPERATURE_PIN 19
+#define ONEWIRE_PIN 19
 #define TEMPERATURE_POWER_PIN 18
 
 #else
@@ -27,7 +27,7 @@
 #define WIEGAND_D0_PIN    D2
 #define WIEGAND_D1_PIN    D1
 
-#define TEMPERATURE_PIN D6
+#define ONEWIRE_PIN D6
 
 #define LIGHT_INV
 #define BEEP_INV

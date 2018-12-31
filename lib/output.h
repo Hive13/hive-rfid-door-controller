@@ -20,6 +20,7 @@ extern "C" {
 #define OUTPUT_DOOR_LATCH     0
 #define OUTPUT_SCANNER_BEEPER 1
 #define OUTPUT_SCANNER_LIGHT  2
+#define OUTPUT_VEND_RELAY     3
 
 
 #define OUTPUT_TYPE_ARDUINO 1
@@ -44,7 +45,7 @@ struct output
 	};
 
 void set_output(unsigned char output, unsigned char state);
-void output_init(unsigned char pin);
+void output_init(void);
 
 #ifdef __cplusplus
 };

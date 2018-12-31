@@ -41,7 +41,7 @@ void soda_temp_init(void)
 	digitalWrite(COMPRESSOR_RELAY, LOW);
 	digitalWrite(TEMPERATURE_POWER_PIN, HIGH);
 
-	temperature_init(TEMPERATURE_PIN, TEMPERATURE_UPDATE_INTERVAL, sensors, (sizeof(sensors) / sizeof(sensors[0])));
+	temperature_init(TEMPERATURE_UPDATE_INTERVAL, sensors, (sizeof(sensors) / sizeof(sensors[0])));
 	}
 
 void temperature_check(void)
