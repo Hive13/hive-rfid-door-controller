@@ -9,8 +9,12 @@ extern "C" {
 
 #define leds_off() leds_out(1)
 
+#define LEDS_OTHERS_OFF 1
+#define LEDS_SHOW       2
+#define LEDS_SOLD_OUT   4
+
 #ifdef SODA_MACHINE
-void leds_one(char which, uint32_t color, unsigned char do_sold_out);
+void leds_one(char which, uint32_t color, unsigned char flags);
 void leds_two(char which, uint32_t color1, uint32_t color_2);
 void leds_init(void);
 void leds_out(unsigned char show);

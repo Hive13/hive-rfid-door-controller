@@ -103,7 +103,7 @@ void leds_random(char which)
 	leds_show(0);
 	}
 
-void leds_one(char which, uint32_t color, unsigned char do_sold_out)
+void leds_one(char which, uint32_t color, unsigned char flags)
 	{
 	unsigned char i;
 
@@ -111,10 +111,11 @@ void leds_one(char which, uint32_t color, unsigned char do_sold_out)
 		{
 		if (which == i)
 			leds.setPixelColor(i, color);
-		else
+		else if (flags & LEDS_OTHERS_OFF)
 			leds.setPixelColor(i, 0UL);
 		}
-	leds_show(do_sold_out);
+	if (flags & LEDS_SHOW)
+		leds_show(flags & LEDS_SOLD_OUT ? 1 : 0);
 	}
 
 void leds_two(char which, uint32_t color1, uint32_t color2)
