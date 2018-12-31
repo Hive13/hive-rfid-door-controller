@@ -8,6 +8,7 @@
 #include "scanner.h"
 #include "doorbell.h"
 #include "output.h"
+#include "eeprom_lib.h"
 
 #ifdef SODA_MACHINE
 #include "vend.h"
