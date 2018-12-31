@@ -4,7 +4,7 @@
 #include <SHA512.h>
 
 #ifdef PLATFORM_ARDUINO
-#include <Ethernet.h> 
+#include <Ethernet.h>
 #include <b64.h>
 #include <HttpClient.h>
 #else
@@ -72,7 +72,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *rv)
 		log_msg("Cannot parse result");
 		return RESPONSE_BAD_JSON;
 		}
-	
+
 	cs = cJSON_GetObjectItem(result, "checksum");
 	if (!cs)
 		{
@@ -109,7 +109,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *rv)
 		log_msg("Invalid checksum");
 		return RESPONSE_BAD_CKSUM;
 		}
-	
+
 	response = cJSON_DetachItemFromObject(data, "nonce_valid");
 	if (!response)
 		{
@@ -127,7 +127,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *rv)
 		return RESPONSE_BAD_NONCE;
 		}
 	cJSON_Delete(response);
-	
+
 	response = cJSON_DetachItemFromObject(data, "response");
 	if (!response)
 		{
@@ -143,7 +143,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *rv)
 		log_msg("Invalid response");
 		return RESPONSE_BAD_JSON;
 		}
-	
+
 	cJSON_Delete(response);
 
 	response = cJSON_DetachItemFromObject(data, "random_response");
@@ -153,9 +153,9 @@ unsigned char parse_response(char *in, struct cJSON **out, char *rv)
 		log_msg("No random_response");
 		return RESPONSE_BAD_CKSUM;
 		}
-	
+
 	cs = response->child;
-	
+
 	for (i = 0; i < RAND_SIZE && cs; i++)
 		{
 		if (cs->type != cJSON_Number)
@@ -165,9 +165,9 @@ unsigned char parse_response(char *in, struct cJSON **out, char *rv)
 
 		cs = cs->next;
 		}
-	
+
 	cJSON_Delete(response);
-	
+
 	if (i < RAND_SIZE)
 		{
 		cJSON_Delete(data);
@@ -179,7 +179,7 @@ unsigned char parse_response(char *in, struct cJSON **out, char *rv)
 		*out = data;
 	else
 		cJSON_Delete(data);
-		
+
 	response = cJSON_GetObjectItem(data, "new_nonce");
 	memmove(nonce, response->valuestring, 32);
 	nonce[32] = 0;
@@ -194,7 +194,7 @@ void get_hash(struct cJSON *data, char *sha_buf)
 	unsigned long r;
 	SHA512 sha;
 	char *out;
-	
+
 	out = cJSON_Print(data);
 	cJSON_Minify(out);
 
@@ -202,24 +202,24 @@ void get_hash(struct cJSON *data, char *sha_buf)
 	sha.update(config->key, sizeof(config->key));
 	sha.update(out, strlen(out));
 	sha.finalize(sha_buf, sha.hashSize());
-	
+
 	free(out);
 	}
 
 char *get_signed_packet(struct cJSON *data)
-	{	
+	{
 	struct cJSON *root = cJSON_CreateObject();
 	char sha_buf[SHA512_SZ], sha_buf_out[2 * SHA512_SZ + 1];
 	char *out;
-	
+
 	get_hash(data, sha_buf);
 
 	print_hex(sha_buf_out, sha_buf, SHA512_SZ);
-	
+
 	cJSON_AddItemToObjectCS(root, "data", data);
 	cJSON_AddItemToObjectCS(root, "device",  cJSON_CreateString(config->name));
 	cJSON_AddItemToObjectCS(root, "checksum", cJSON_CreateString(sha_buf_out));
-	
+
 	out = cJSON_Print(root);
 	cJSON_Delete(root);
 
@@ -236,7 +236,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	struct cJSON *new_nonce;
 	unsigned long start, l;
 	unsigned char i;
-	
+
 	leds_busy();
 	request = get_signed_packet(data);
 	l = strlen(request);
@@ -284,12 +284,12 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 
 	i = parse_response(body, result, rand);
 	//free(body);
-	
+
 #ifndef NO_SCANNER
 	if (i != RESPONSE_GOOD)
 		beep_it(BEEP_PATTERN_PACKET_ERROR);
 #endif
-		
+
 	return i;
 	}
 
@@ -314,7 +314,7 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	unsigned char i;
 	struct cJSON *new_nonce;
 	char *request;
-	
+
 	request = get_signed_packet(data);
 	log_msg("Request: %s", request);
 
@@ -337,12 +337,12 @@ unsigned char http_request(struct cJSON *data, struct cJSON **result, char *rand
 	body = http.getString();
 	log_msg("Response: %s", body.c_str());
 	i = parse_response((char *)body.c_str(), result, rand);
-	
+
 #ifndef NO_SCANNER
 	if (i != RESPONSE_GOOD)
 		beep_it(BEEP_PATTERN_PACKET_ERROR);
 #endif
-		
+
 	return i;
 	}
 
@@ -351,7 +351,7 @@ void get_rand(char *rand)
 	{
 	unsigned char i;
 	unsigned long r;
-	
+
 	for (i = 0; i < RAND_SIZE; i++)
 		{
 		if (!(i % 4))
@@ -365,7 +365,7 @@ void add_random_response(struct cJSON *data, char *rand)
 	{
 	struct cJSON *json, *prev, *ran = cJSON_CreateArray();
 	unsigned char i;
-	
+
 	get_rand(rand);
 	for (i = 0; i < RAND_SIZE; i++)
 		{

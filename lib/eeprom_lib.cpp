@@ -66,7 +66,7 @@ void eeprom_init(void)
 		crc = crc_table[(crc ^ (data[i] >> 4)) & 0x0f] ^ (crc >> 4);
 		crc = ~crc;
 		}
-	
+
 	if (crc == eeprom_d.crc16)
 		return;
 

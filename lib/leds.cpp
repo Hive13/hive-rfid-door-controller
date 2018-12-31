@@ -132,7 +132,7 @@ void leds_two(char which, uint32_t color1, uint32_t color2)
 		else
 			leds.setPixelColor(i, 0);
 		}
-	
+
 	leds_show(1);
 	}
 #endif
