@@ -1,11 +1,11 @@
 #include "config.h"
-#include <Arduino.h>
 
-#include "soda_temp.h"
 #include "temp.h"
-#include "leds.h"
-#include "cJSON.h"
-#include "schedule.h"
+#include "output.h"
+
+#define COMPRESSOR_ON 38.0
+#define COMPRESSOR_OFF 34.0
+#define COMPRESSOR_ON_DELAY_MILLIS 30000
 
 uint32_t cur_temp = 0;
 
@@ -33,12 +33,4 @@ struct temp_sensor sensors[] =
 		.log_name = "soda_machine",
 		},
 	};
-
-void soda_temp_init(void)
-	{
-	pinMode(COMPRESSOR_RELAY, OUTPUT);
-	digitalWrite(COMPRESSOR_RELAY, LOW);
-
-	temperature_init(sensors, (sizeof(sensors) / sizeof(sensors[0])));
-	}
-
+unsigned char sensor_count = sizeof(sensors) / sizeof(sensors[0]);

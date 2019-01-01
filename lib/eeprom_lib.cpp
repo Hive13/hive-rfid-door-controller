@@ -81,8 +81,10 @@ void eeprom_init(void)
 
 	/* Module-specific defaults, move to a better spot */
 	memset(config->bulbs, 1, sizeof(config->bulbs));
+#ifdef SODA_MACHINE
 	for (i = 0; i < soda_count; i++)
 		config->soda_type[i] = sodas[i].type;
+#endif
 
 	eeprom_save();
 	}

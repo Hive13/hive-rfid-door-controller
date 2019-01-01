@@ -1,5 +1,5 @@
 #include "config.h"
-#include "access_temp.h"
+#include "temp.h"
 #include "log.h"
 #include "http.h"
 #include "ui.h"
@@ -28,7 +28,7 @@ void setup(void)
 	scanner_init(open_door);
 #endif
 	doorbell_init();
-	access_temperature_init();
+	temp_init();
 	beep_it(BEEP_PATTERN_START);
 	}
 

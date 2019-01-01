@@ -1,13 +1,13 @@
-#include <Arduino.h>
-#include <OneWire.h>
-
 #include "temp.h"
-#include "access_temp.h"
+#include "output.h"
 #include "log.h"
-#include "schedule.h"
 #include "http.h"
 
-char main_temperature_sensor(struct temp_sensor *me, unsigned long temp);
+char main_temperature_sensor(struct temp_sensor *me, unsigned long temp)
+	{
+	log_msg("Temperature: %lu.%lu", temp / 10, temp % 10);
+	return 0;
+	}
 
 struct temp_sensor sensors[] =
 	{
@@ -18,14 +18,5 @@ struct temp_sensor sensors[] =
 		.log_name = "annex",
 		},
 	};
+unsigned char sensor_count = sizeof(sensors) / sizeof(sensors[0]);
 
-char main_temperature_sensor(struct temp_sensor *me, unsigned long temp)
-	{
-	log_msg("Temperature: %lu.%lu", temp / 10, temp % 10);
-	return 0;
-	}
-
-void access_temperature_init(void)
-	{
-	temperature_init(sensors, (sizeof(sensors) / sizeof(sensors[0])));
-	}

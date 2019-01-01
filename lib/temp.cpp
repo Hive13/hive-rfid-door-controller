@@ -14,15 +14,13 @@ extern unsigned char key[16];
 extern char *device;
 extern OneWire *ds = NULL;
 
-unsigned char sensor_count;
+extern struct temp_sensor *sensors;
+extern unsigned char sensor_count;
 
-void temperature_init(struct temp_sensor *sensors, unsigned char count)
+void temperature_init(void)
 	{
 	log_msg("Initializing temperature controller.");
-
-	sensor_count = count;
-
-	schedule(0, (time_handler *)handle_temperature, sensors);
+	schedule(0, (time_handler *)handle_temperature, NULL);
 	}
 
 char start_read_temperature(void)
@@ -89,7 +87,7 @@ uint32_t get_temperature(unsigned char *addr)
 	return tempRead + 320;
 	}
 
-char handle_temperature(struct temp_sensor *sensors, unsigned long *t, unsigned long m)
+char handle_temperature(void *ptr, unsigned long *t, unsigned long m)
 	{
 	static unsigned char flag = 0;
 	unsigned char i;

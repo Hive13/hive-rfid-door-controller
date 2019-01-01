@@ -12,8 +12,8 @@ extern "C" {
 
 typedef char (sensor_func)(struct temp_sensor *, unsigned long);
 
-char handle_temperature(struct temp_sensor *sensors, unsigned long *t, unsigned long m);
-void temperature_init(struct temp_sensor *sensors, unsigned char count);
+char handle_temperature(void *ptr, unsigned long *t, unsigned long m);
+void temperature_init(void);
 
 struct temp_sensor
 	{

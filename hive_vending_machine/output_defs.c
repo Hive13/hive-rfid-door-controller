@@ -22,13 +22,13 @@ struct output outputs[] =
 		},
 		{ /* OUTPUT_VEND_RELAY */
 		.type = OUTPUT_TYPE_ARDUINO,
-		.init = LIGHT_INIT,
+		.init = 1,
 		.pin  = 7,
 		},
 		{ /* OUTPUT_COMPRESSOR_RELAY */
 		.type = OUTPUT_TYPE_ARDUINO,
-		.init = LIGHT_INIT,
-		.pin  = 6,
+		.init = 1,
+		.pin  = -1,
 		},
 	};
 
