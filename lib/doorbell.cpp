@@ -96,28 +96,11 @@ void doorbell_isr(void)
 char doorbell_network(char *data, unsigned long *time, unsigned long now)
 	{
 	static unsigned long last_beep = 0;
-	char buffer[UDP_TX_PACKET_MAX_SIZE];
-	int sz;
 
-	sz = udp.parsePacket();
-
-	if (sz >= 8
-#ifdef PLATFORM_ESP8266
-		&& udp.destinationIP() == mc_ip
-#endif
-		)
-		{
-		udp.read(buffer, UDP_TX_PACKET_MAX_SIZE);
-
-		if (sz == 8 && !memcmp(buffer, "doorbell", 8))
-			{
-			if ((last_beep + 5000) <= now)
-				beep_it(BEEP_PATTERN_DOORBELL);
-			last_beep = now;
-			}
-		}
-	udp.flush();
-	return SCHEDULE_REDO;
+	if ((last_beep + 5000) <= now)
+		beep_it(BEEP_PATTERN_DOORBELL);
+	last_beep = now;
+	return SCHEDULE_DONE;
 	}
 
 void doorbell_init(void)
@@ -127,12 +110,7 @@ void doorbell_init(void)
 	pinMode(DOORBELL_BUTTON_PIN, INPUT_PULLUP);
 	pinMode(BUZZER_PIN,          OUTPUT);
 	attachInterrupt(digitalPinToInterrupt(DOORBELL_BUTTON_PIN), doorbell_isr, CHANGE);
-#endif
-
-#ifdef PLATFORM_ARDUINO
-	udp.beginMulticast(mc_ip, MULTICAST_PORT);
 #else
-	//udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
+	register_mc("doorbell", doorbell_network);
 #endif
-	//schedule(0, (time_handler *)doorbell_network, &udp);
 	}

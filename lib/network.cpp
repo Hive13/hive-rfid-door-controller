@@ -73,8 +73,11 @@ static char handle_mc(WiFiUDP *u, unsigned long *time, unsigned long now)
 	if (!sz)
 		return SCHEDULE_REDO;
 
-	if (sz >= 8 && u->destinationIP() == mc_ip
-		&& (sz = udp.read(buffer, sizeof(buffer))) >= 8)
+	if (sz >= 8
+#ifdef PLATFORM_ESP8266
+		&& u->destinationIP() == mc_ip
+#endif
+		&& (sz = u->read(buffer, sizeof(buffer))) >= 8)
 		{
 		for (i = 0; i < (sizeof(mc_ops) / sizeof(mc_ops[0])); i++)
 			{
@@ -105,6 +108,7 @@ void network_init(void)
 
 	/* Do it twice for Arduino because the first request times out. */
 	update_nonce();
+	udp.beginMulticast(mc_ip, MULTICAST_PORT);
 #endif
 #ifdef PLATFORM_ESP8266
 	int status;
@@ -127,7 +131,7 @@ void network_init(void)
 	WiFi.setAutoConnect(1);
 	WiFi.setAutoReconnect(1);
 	udp.beginMulticast(WiFi.localIP(), mc_ip, MULTICAST_PORT);
-	schedule(0, (time_handler *)handle_mc, &udp);
 #endif
+	schedule(0, (time_handler *)handle_mc, &udp);
 	update_nonce();
 	}
