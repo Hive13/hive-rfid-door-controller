@@ -7,9 +7,6 @@
 
 #define LED_PIN   6
 
-#ifndef BEEP_PIN
-#define BEEP_PIN  12
-#endif
 #define OPEN_PIN  A0
 #define WIEGAND_D0_PIN    2
 #define WIEGAND_D1_PIN    3
@@ -18,7 +15,6 @@
 #define DOORBELL_BUTTON_PIN 18
 
 #define ONEWIRE_PIN 19
-#define TEMPERATURE_POWER_PIN 18
 
 #else
 #ifdef PLATFORM_ESP8266
@@ -39,7 +35,6 @@
 
 /* Number of ms */
 #define DOOR_OPEN_TIME 5000
-#define TEMPERATURE_UPDATE_INTERVAL 60000
 
 #define HTTP_HOST       "http://intweb.at.hive13.org/api/access"
 #define NETWORK_TIMEOUT 5000

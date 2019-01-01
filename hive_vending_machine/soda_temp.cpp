@@ -7,7 +7,7 @@
 #include "cJSON.h"
 #include "schedule.h"
 
-static uint32_t cur_temp = 0;
+uint32_t cur_temp = 0;
 
 char soda_temperature_sensor(struct temp_sensor *me, unsigned long temp)
 	{
@@ -36,34 +36,9 @@ struct temp_sensor sensors[] =
 
 void soda_temp_init(void)
 	{
-	pinMode(TEMPERATURE_POWER_PIN, OUTPUT);
 	pinMode(COMPRESSOR_RELAY, OUTPUT);
 	digitalWrite(COMPRESSOR_RELAY, LOW);
-	digitalWrite(TEMPERATURE_POWER_PIN, HIGH);
 
-	temperature_init(TEMPERATURE_UPDATE_INTERVAL, sensors, (sizeof(sensors) / sizeof(sensors[0])));
+	temperature_init(sensors, (sizeof(sensors) / sizeof(sensors[0])));
 	}
 
-void temperature_check(void)
-	{
-	unsigned char light, p;
-	uint32_t color;
-
-	if (cur_temp < 320)
-		{
-		light = 0;
-		color = Color(0, 255, 0);
-		}
-	else if (cur_temp >= 480)
-		{
-		light = 7;
-		color = Color(0, 255, 0);
-		}
-	else
-		{
-		light = (unsigned char)((cur_temp - 320) / 20);
-		p = (cur_temp % 20) * 12;
-		color = Color(0 + p, 0, 255 - p);
-		}
-	leds_one(light, color, LEDS_SHOW | LEDS_OTHERS_OFF);
-	}

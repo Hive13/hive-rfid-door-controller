@@ -17,10 +17,11 @@
 extern "C" {
 #endif
 
-#define OUTPUT_DOOR_LATCH     0
-#define OUTPUT_SCANNER_BEEPER 1
-#define OUTPUT_SCANNER_LIGHT  2
-#define OUTPUT_VEND_RELAY     3
+#define OUTPUT_DOOR_LATCH       0
+#define OUTPUT_SCANNER_BEEPER   1
+#define OUTPUT_SCANNER_LIGHT    2
+#define OUTPUT_VEND_RELAY       3
+#define OUTPUT_COMPRESSOR_RELAY 4
 
 
 #define OUTPUT_TYPE_ARDUINO 1

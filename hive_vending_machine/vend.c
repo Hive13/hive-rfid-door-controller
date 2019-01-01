@@ -11,18 +11,8 @@
 #include "schedule.h"
 #include "output.h"
 
-#define EEPROM_VER1_SIGNATURE 0xD384
-
-struct vend_eeprom
-	{
-	unsigned short size;
-	unsigned short signature;
-	unsigned char  soda_count;
-	unsigned char  soda_type[];
-	};
-
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
-// In a format of switch pin number, relay pin number, and a type.
+// In a format of switch pin number and a relay pin number, and a default type.
 struct soda sodas[] = {
 	{22, 37, 2},
 	{24, 35, 1},
@@ -34,7 +24,7 @@ struct soda sodas[] = {
 	{36, 23, 3},
 };
 
-unsigned char soda_count = SODA_COUNT;
+unsigned char soda_count = sizeof(sodas) / sizeof(sodas[0]);
 static unsigned char larsen_on = 0;
 unsigned char sold_out = 0;
 static volatile unsigned char sold_out_t = 0;
@@ -59,6 +49,31 @@ ISR(PCINT2_vect)
 	sold_out_t = PINK;
 	}
 
+void temperature_check(void)
+	{
+	extern uint32_t cur_temp;
+	unsigned char light, p;
+	uint32_t color;
+
+	if (cur_temp < 320)
+		{
+		light = 0;
+		color = Color(0, 255, 0);
+		}
+	else if (cur_temp >= 480)
+		{
+		light = 7;
+		color = Color(0, 255, 0);
+		}
+	else
+		{
+		light = (unsigned char)((cur_temp - 320) / 20);
+		p = (cur_temp % 20) * 12;
+		color = Color(0 + p, 0, 255 - p);
+		}
+	leds_one(light, color, LEDS_SHOW | LEDS_OTHERS_OFF);
+	}
+
 void type_display(void)
 	{
 	unsigned char i;
@@ -67,7 +82,7 @@ void type_display(void)
 	leds_out(0);
 	for (i = 0; i < soda_count; i++)
 		{
-		switch (sodas[i].type)
+		switch (config->soda_type[i])
 			{
 			case KIND_DIET:
 				color = Color(255, 0, 0);
@@ -104,7 +119,7 @@ void set_vend(char c)
 		larsen_at = 0;
 		}
 
-	for (i = 0; i < SODA_COUNT; i++)
+	for (i = 0; i < soda_count; i++)
 		digitalWrite(sodas[i].relay_pin, c != i);
 	if (c == -1 && larsen_on)
 		{
@@ -125,7 +140,7 @@ void set_vend(char c)
 void do_random_vend(unsigned char kind)
 	{
 	unsigned long stop_at, randomSodaColor;
-	unsigned char randomSoda, tries = 0, color_at = 20 * SODA_COUNT, i;
+	unsigned char randomSoda, tries = 0, color_at = 20 * soda_count, i;
 
 	// Display the light show
 	log_msg("Vending random soda!");
@@ -141,12 +156,12 @@ void do_random_vend(unsigned char kind)
 		*/
 		while (--tries)
 			{
-			randomSoda = random() % SODA_COUNT;
+			randomSoda = random() % soda_count;
 			if (sold_out & (1 << randomSoda))
 				continue;
 			if (kind == KIND_ANY)
 				break;
-			else if (kind == sodas[randomSoda].type)
+			else if (kind == config->soda_type[randomSoda])
 				break;
 			}
 		leds_random(randomSoda);
@@ -194,8 +209,6 @@ void handle_vend(unsigned long code)
 void vend_init(void)
 	{
 	unsigned char i;
-	unsigned char buf[128];
-	struct vend_eeprom *prom = buf;
 
 	DDRK = 0;
 	PORTK = 0xFF;
@@ -210,27 +223,6 @@ void vend_init(void)
 		digitalWrite(sodas[i].switch_pin, HIGH);
 		pinMode(sodas[i].relay_pin, OUTPUT);
 		digitalWrite(sodas[i].relay_pin, HIGH);
-		}
-
-	log_msg("Loading vend data from EEPROM");
-	eeprom_read_block(buf, 0, 4);
-	switch (prom->signature)
-		{
-		case EEPROM_VER1_SIGNATURE:
-			eeprom_read_block(buf + 4, 4, prom->size - 4);
-			for (i = 0; i < soda_count; i++)
-				sodas[i].type = prom->soda_type[i];
-			break;
-		default: /* Initialize */
-			log_msg("No data stored, initializing.");
-			prom->signature  = EEPROM_VER1_SIGNATURE;
-			prom->size       = 5 + soda_count;
-			prom->soda_count = soda_count;
-			memset(prom->soda_type, 0, soda_count);
-			for (i = 0; i < soda_count; i++)
-				prom->soda_type[i] = sodas[i].type;
-			eeprom_write_block(buf, 0, prom->size);
-			break;
 		}
 
 	/* Set up the sold out pins */
@@ -303,7 +295,7 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 	else if (mask == 0xC0)
 		do_random_vend(KIND_REGULAR);
 	else if (mask == 0xA0)
-		digitalWrite(BEEP_PIN, LOW);
+		set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 	else if (!(mask & (mask - 1))) /* If only one bit is set in the mask */
 		{
 		if (mask & sold_out)

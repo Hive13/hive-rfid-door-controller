@@ -11,6 +11,7 @@ struct eeprom_data
 	char name[25];
 	unsigned char bulbs[4];
 	unsigned char onewire_pin;
+	unsigned char soda_type[8];
 	};
 
 void eeprom_init(void);

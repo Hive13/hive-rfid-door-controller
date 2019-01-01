@@ -15,14 +15,12 @@ extern char *device;
 extern OneWire *ds = NULL;
 
 unsigned char sensor_count;
-static unsigned long schedule_interval;
 
-void temperature_init(unsigned long interval, struct temp_sensor *sensors, unsigned char count)
+void temperature_init(struct temp_sensor *sensors, unsigned char count)
 	{
 	log_msg("Initializing temperature controller.");
 
-	sensor_count      = count;
-	schedule_interval = interval;
+	sensor_count = count;
 
 	schedule(0, (time_handler *)handle_temperature, sensors);
 	}
@@ -118,6 +116,6 @@ char handle_temperature(struct temp_sensor *sensors, unsigned long *t, unsigned 
 		if (sensors[i].log_name)
 			log_temp(temp, sensors[i].log_name);
 		}
-	*t = m + schedule_interval;
+	*t = m + TEMPERATURE_UPDATE_INTERVAL;
 	return SCHEDULE_REDO;
 	}

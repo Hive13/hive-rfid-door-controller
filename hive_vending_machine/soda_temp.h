@@ -10,7 +10,6 @@
 extern "C" {
 #endif
 
-void temperature_check(void);
 void soda_temp_init(void);
 
 #ifdef __cplusplus

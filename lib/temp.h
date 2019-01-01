@@ -1,6 +1,7 @@
 #ifndef __TEMP_H
 #define __TEMP_H
 
+#define TEMPERATURE_UPDATE_INTERVAL 60000
 #define TEMPERATURE_READ_TIME 1000
 #define ONEWIRE_ADDR_SZ 8
 #define MAX_NUM_SENSORS 4
@@ -12,7 +13,7 @@ extern "C" {
 typedef char (sensor_func)(struct temp_sensor *, unsigned long);
 
 char handle_temperature(struct temp_sensor *sensors, unsigned long *t, unsigned long m);
-void temperature_init(unsigned long interval, struct temp_sensor *sensors, unsigned char count);
+void temperature_init(struct temp_sensor *sensors, unsigned char count);
 
 struct temp_sensor
 	{

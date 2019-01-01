@@ -23,10 +23,6 @@ void handle_vend(unsigned long code);
 #endif
 
 #define RANDOM_SODA_NUMBER 4
-#define SODA_COUNT (sizeof(sodas) / sizeof(sodas[0]))
-#define VEND_PIN 7
-#define BEEP_PIN 9
-#define WIEGAND_LIGHT_PIN 8
 #define MIN_DEBOUNCE_COUNT 100
 
 #define KIND_ANY     0

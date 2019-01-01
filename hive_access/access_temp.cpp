@@ -27,5 +27,5 @@ char main_temperature_sensor(struct temp_sensor *me, unsigned long temp)
 
 void access_temperature_init(void)
 	{
-	temperature_init(TEMPERATURE_UPDATE_INTERVAL, sensors, (sizeof(sensors) / sizeof(sensors[0])));
+	temperature_init(sensors, (sizeof(sensors) / sizeof(sensors[0])));
 	}
