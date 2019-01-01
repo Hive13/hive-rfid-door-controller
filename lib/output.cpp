@@ -54,6 +54,9 @@ void set_output(unsigned char output_num, unsigned char state)
 	struct output *o = outputs + output_num;
 	unsigned char mask;
 
+	if (output_num > output_count)
+		return;
+
 	if (o->type == OUTPUT_TYPE_ARDUINO)
 		digitalWrite(o->pin, state);
 	else if (o->type == OUTPUT_TYPE_AVR)
