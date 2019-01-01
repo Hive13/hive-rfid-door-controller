@@ -24,11 +24,11 @@ static char handle_scan(scan_handler *h, unsigned long *t, unsigned long m)
 	code = wg.getCode();
 	log_msg("Scanned badge %lu/0x%lX, type W%d", code, code, wg.getWiegandType());
 
-#ifdef CACHE_BADGES
+#ifndef CACHE_BADGES
 	if (check_badge(code))
 		h();
 	return SCHEDULE_REDO;
-#endif
+#else
 
 	/* Check to see if the user has been cached */
 	for (i = 0; i < CACHE_SIZE; i++)
@@ -64,6 +64,7 @@ static char handle_scan(scan_handler *h, unsigned long *t, unsigned long m)
 				usersCache[i] = 0;
 		}
 	return SCHEDULE_REDO;
+#endif
 	}
 
 void scanner_init(scan_handler *handler)
