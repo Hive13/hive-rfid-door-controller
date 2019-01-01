@@ -19,6 +19,14 @@
 #include "output.h"
 #endif
 
+static WiFiUDP udp;
+static IPAddress mc_ip(239, 72, 49, 51);
+struct mc_operation
+	{
+	unsigned char header[8];
+	void *ptr;
+	} mc_ops[8];
+
 #ifdef PLATFORM_ARDUINO
 static byte mac[] = MAC;
 
@@ -34,20 +42,13 @@ char handle_ethernet(void *ptr, unsigned long *t, unsigned long m)
 #ifdef PLATFORM_ESP8266
 static char *ssid = WIFI_SSID;
 static char *pass = WIFI_PASS;
-static WiFiUDP udp;
-static IPAddress mc_ip(239, 72, 49, 51);
-
-struct mc_operation
-	{
-	unsigned char header[8];
-	void *ptr;
-	} mc_ops[8];
 
 void wifi_error(void)
 	{
 	WiFi.disconnect(1);
 	network_init();
 	}
+#endif
 
 void register_mc(char header[], void *ptr)
 	{
@@ -91,7 +92,6 @@ static char handle_mc(WiFiUDP *u, unsigned long *time, unsigned long now)
 	u->flush();
 	return SCHEDULE_REDO;
 	}
-#endif
 
 void network_init(void)
 	{
