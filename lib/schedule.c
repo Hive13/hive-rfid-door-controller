@@ -60,7 +60,7 @@ void *schedule(unsigned long time, time_handler *func, void *ptr)
 	t->func   = func;
 	t->data   = ptr;
 	t->status = STATUS_SCHEDULED;
-	
+
 	STOP_ISRS();
 	if (!task_chain)
 		{
@@ -74,7 +74,7 @@ void *schedule(unsigned long time, time_handler *func, void *ptr)
 		walker->next = t;
 		t->prev = walker;
 		}
-	
+
 	START_ISRS();
 	return t;
 	}
@@ -87,7 +87,7 @@ void run_schedule(void)
 	struct task *t = task_chain, *p;
 	unsigned long m = millis();
 	char ret;
-	
+
 	STOP_ISRS();
 	while (t)
 		{

@@ -39,7 +39,7 @@ unsigned char can_vend(unsigned long badge)
 	return i;
 	}
 
-unsigned char check_badge(unsigned long badge_num, void (*success)(void))
+unsigned char check_badge(unsigned long badge_num)
 	{
 	struct cJSON *json, *result, *data = cJSON_CreateObject();
 	unsigned char i;
@@ -57,11 +57,7 @@ unsigned char check_badge(unsigned long badge_num, void (*success)(void))
 		{
 		json = cJSON_GetObjectItem(result, "access");
 		if (json && json->type == cJSON_True)
-			{
-			if (success)
-				success();
 			i = 1;
-			}
 		else
 			{
 			log_msg("Access denied.");
@@ -86,7 +82,7 @@ void log_temp(unsigned long temp, char *name)
 	json = cJSON_CreateObject();
 	cJSON_AddItemToObjectCS(json, "item", cJSON_CreateString(name));
 	cJSON_AddItemToObjectCS(json, "temperature", cJSON_CreateNumber(temp));
-	
+
 	cJSON_AddItemToObjectCS(data, "log_data",        json);
 	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
 	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("log"));
@@ -125,13 +121,13 @@ void update_soda_status(unsigned char sold_out_mask)
 			}
 		prev = item;
 		}
-	
+
 	cJSON_AddItemToObjectCS(data, "nonce",           cJSON_CreateString(nonce));
 	cJSON_AddItemToObjectCS(data, "operation",       cJSON_CreateString("soda_status"));
 	add_random_response(data, rand);
 	cJSON_AddItemToObjectCS(data, "soda_status",     json);
 	cJSON_AddItemToObjectCS(data, "version",         cJSON_CreateNumber(2));
-	
+
 	i = http_request(data, &result, rand);
 
 	if (i == RESPONSE_GOOD)

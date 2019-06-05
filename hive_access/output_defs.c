@@ -9,7 +9,6 @@ struct output outputs[] =
 		.type = OUTPUT_TYPE_DS2408,
 		.init = DOOR_LOCKED,
 		.data = { .ds2408_addr = {0x29, 0x29, 0x9F, 0x27, 0x00, 0x00, 0x00, 0x2D} },
-
 		.pin  = 0,
 		},
 		{ /* OUTPUT_SCANNER_BEEPER */

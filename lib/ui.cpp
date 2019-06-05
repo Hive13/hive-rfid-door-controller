@@ -109,7 +109,7 @@ void beep_it(unsigned char pattern_idx)
 	unsigned int i = 0;
 	struct beep_pattern *pattern = patterns + pattern_idx;
 	register unsigned char light = pattern->options & 0x03;
-	
+
 	if (pattern->log_message)
 		log_msg("Beep: %s", pattern->log_message);
 
@@ -138,7 +138,7 @@ void beep_it(unsigned char pattern_idx)
 		else if (light == GREEN_WITH_BEEP)
 			LIGHT_RED();
 		}
-	
+
 	/* Always leave the light in this state when idle */
 	LIGHT_RED();
 	leds_off();
@@ -147,7 +147,7 @@ void beep_it(unsigned char pattern_idx)
 static char close_door(struct door_open *d, unsigned long *t, unsigned long m)
 	{
 	unsigned char c;
-	
+
 	d->beep_state = !d->beep_state;
 	set_output(OUTPUT_SCANNER_BEEPER, d->beep_state);
 	set_output(OUTPUT_SCANNER_LIGHT,  d->beep_state);
@@ -177,10 +177,10 @@ void open_door(void)
 		cycles:     0,
 		status:     OPEN_IDLE,
 		};
-	
+
 	d.cycles     = (DOOR_OPEN_TIME / 100);
 	d.beep_state = 0;
-	
+
 	if (d.status == OPEN_IDLE)
 		{
 		d.status = OPEN_IN_PROGRESS;

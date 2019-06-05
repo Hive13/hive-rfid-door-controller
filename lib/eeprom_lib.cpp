@@ -3,6 +3,7 @@
 #include <EEPROM.h>
 
 #include "eeprom_lib.h"
+#include "vend.h"
 #include "log.h"
 
 static const unsigned long crc_table[16] =
@@ -51,6 +52,8 @@ void eeprom_init(void)
 	unsigned char *data = (unsigned char *)&eeprom_d;
 	unsigned char key[] = KEY;
 	char *device = DEVICE;
+	extern struct soda sodas[];
+	extern unsigned char soda_count;
 
 	log_msg("Loading config data from EEPROM.");
 #ifdef PLATFORM_ESP8266
@@ -66,14 +69,22 @@ void eeprom_init(void)
 		crc = crc_table[(crc ^ (data[i] >> 4)) & 0x0f] ^ (crc >> 4);
 		crc = ~crc;
 		}
-	
+
 	if (crc == eeprom_d.crc16)
 		return;
 
 	/* Doesn't match; load from code */
+	config->onewire_pin = ONEWIRE_PIN;
 	memmove(config->key, key, sizeof(config->key));
 	memset(config->name, 0, sizeof(config->name));
-	memset(config->bulbs, 1, sizeof(config->bulbs));
 	strncpy(config->name, device, sizeof(config->name) - 1);
+
+	/* Module-specific defaults, move to a better spot */
+	memset(config->bulbs, 1, sizeof(config->bulbs));
+#ifdef SODA_MACHINE
+	for (i = 0; i < soda_count; i++)
+		config->soda_type[i] = sodas[i].type;
+#endif
+
 	eeprom_save();
 	}

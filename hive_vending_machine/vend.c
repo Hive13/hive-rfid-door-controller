@@ -1,6 +1,7 @@
 #include "config.h"
 
 #include <Arduino.h>
+#include <avr/eeprom.h>
 
 #include "cJSON.h"
 #include "log.h"
@@ -8,21 +9,22 @@
 #include "ui.h"
 #include "http.h"
 #include "schedule.h"
+#include "output.h"
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
-// In a format of switch pin number, relay pin number, and a diet flag.
+// In a format of switch pin number and a relay pin number, and a default type.
 struct soda sodas[] = {
-	{22, 37, 0},
-	{24, 35, 0},
-	{26, 33, 0},
-	{28, 31, 0},
-	{30, 29, 0},
-	{32, 27, 1},
-	{34, 25, 1},
-	{36, 23, 1},
+	{22, 37, 2},
+	{24, 35, 1},
+	{26, 33, 1},
+	{28, 31, 1},
+	{30, 29, 1},
+	{32, 27, 2},
+	{34, 25, 2},
+	{36, 23, 3},
 };
 
-unsigned char soda_count = SODA_COUNT;
+unsigned char soda_count = sizeof(sodas) / sizeof(sodas[0]);
 static unsigned char larsen_on = 0;
 unsigned char sold_out = 0;
 static volatile unsigned char sold_out_t = 0;
@@ -36,7 +38,7 @@ char update_sold_out(volatile unsigned char *ptr, unsigned long *t, unsigned lon
 		log_msg("Sold out: %02hhX", sold_out);
 		update_soda_status(sold_out);
 		}
-	
+
 	return SCHEDULE_DONE;
 	}
 
@@ -45,6 +47,61 @@ ISR(PCINT2_vect)
 	schedule_cancel(sold_out_schedule);
 	sold_out_schedule = schedule(millis() + 250, update_sold_out, &sold_out_t);
 	sold_out_t = PINK;
+	}
+
+void temperature_check(void)
+	{
+	extern uint32_t cur_temp;
+	unsigned char light, p;
+	uint32_t color;
+
+	if (cur_temp < 320)
+		{
+		light = 0;
+		color = Color(0, 255, 0);
+		}
+	else if (cur_temp >= 480)
+		{
+		light = 7;
+		color = Color(0, 255, 0);
+		}
+	else
+		{
+		light = (unsigned char)((cur_temp - 320) / 20);
+		p = (cur_temp % 20) * 12;
+		color = Color(0 + p, 0, 255 - p);
+		}
+	leds_one(light, color, LEDS_SHOW | LEDS_OTHERS_OFF);
+	}
+
+void type_display(void)
+	{
+	unsigned char i;
+	unsigned long color;
+
+	leds_out(0);
+	for (i = 0; i < soda_count; i++)
+		{
+		switch (config->soda_type[i])
+			{
+			case KIND_DIET:
+				color = Color(255, 0, 0);
+				break;
+			case KIND_REGULAR:
+				color = Color(0, 255, 0);
+				break;
+			case KIND_BEER:
+				color = Color(255, 255, 0);
+				break;
+			case KIND_WATER:
+				color = Color(255, 255, 255);
+				break;
+			default:
+				color = 0;
+			}
+		leds_one(i, color, 0);
+		}
+	leds_one(-1, 0, LEDS_SHOW);
 	}
 
 void set_vend(char c)
@@ -62,7 +119,7 @@ void set_vend(char c)
 		larsen_at = 0;
 		}
 
-	for (i = 0; i < SODA_COUNT; i++)
+	for (i = 0; i < soda_count; i++)
 		digitalWrite(sodas[i].relay_pin, c != i);
 	if (c == -1 && larsen_on)
 		{
@@ -76,14 +133,14 @@ void set_vend(char c)
 	else
 		{
 		cur_color = Wheel(color_at++);
-		leds_one(c, cur_color, 1);
+		leds_one(c, cur_color, LEDS_OTHERS_OFF | LEDS_SHOW | LEDS_SOLD_OUT);
 		}
 	}
 
 void do_random_vend(unsigned char kind)
 	{
 	unsigned long stop_at, randomSodaColor;
-	unsigned char randomSoda, tries = 0, color_at = 20 * SODA_COUNT, i;
+	unsigned char randomSoda, tries = 0, color_at = 20 * soda_count, i;
 
 	// Display the light show
 	log_msg("Vending random soda!");
@@ -99,14 +156,12 @@ void do_random_vend(unsigned char kind)
 		*/
 		while (--tries)
 			{
-			randomSoda = random() % SODA_COUNT;
+			randomSoda = random() % soda_count;
 			if (sold_out & (1 << randomSoda))
 				continue;
 			if (kind == KIND_ANY)
 				break;
-			else if (kind == KIND_DIET && sodas[randomSoda].diet)
-				break;
-			else if (kind == KIND_REGULAR && !sodas[randomSoda].diet)
+			else if (kind == config->soda_type[randomSoda])
 				break;
 			}
 		leds_random(randomSoda);
@@ -122,7 +177,7 @@ void do_random_vend(unsigned char kind)
 	while (millis() < stop_at)
 		{
 		randomSodaColor = Wheel(color_at++);
-		leds_one(randomSoda, randomSodaColor, 1);
+		leds_one(randomSoda, randomSodaColor, LEDS_SHOW | LEDS_OTHERS_OFF | LEDS_SOLD_OUT);
 		}
 
 	leds_off();
@@ -131,23 +186,23 @@ void do_random_vend(unsigned char kind)
 void handle_vend(unsigned long code)
 	{
 	unsigned char rv = can_vend(code);
-	
+
 	if (rv == RESPONSE_ACCESS_DENIED)
 		{
 		beep_it(BEEP_PATTERN_NO_CREDITS);
 		return;
 		}
-	
+
 	log_msg("Vending.");
 	leds_all(Color(0, 255, 0));
-	digitalWrite(VEND_PIN, LOW);
-	digitalWrite(WIEGAND_LIGHT_PIN, HIGH);
-	digitalWrite(BEEP_PIN, LOW);
+	set_output(OUTPUT_VEND_RELAY, 0);
+	LIGHT_GREEN();
+	set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 	delay(100);
-	digitalWrite(WIEGAND_LIGHT_PIN, LOW);
-	digitalWrite(BEEP_PIN, HIGH);
+	set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
+	LIGHT_RED();
 	delay(900);
-	digitalWrite(VEND_PIN, HIGH);
+	set_output(OUTPUT_VEND_RELAY, 1);
 	leds_off();
 	}
 
@@ -158,12 +213,6 @@ void vend_init(void)
 	DDRK = 0;
 	PORTK = 0xFF;
 
-	pinMode(VEND_PIN, OUTPUT);
-	pinMode(WIEGAND_LIGHT_PIN, OUTPUT);
-	pinMode(BEEP_PIN, OUTPUT);
-	digitalWrite(VEND_PIN, HIGH);
-	digitalWrite(WIEGAND_LIGHT_PIN, LOW);
-	digitalWrite(BEEP_PIN, HIGH);
 	/*
 		Set soda button switch pins to input and pull them high
 		Set soda relay pins to output
@@ -175,7 +224,7 @@ void vend_init(void)
 		pinMode(sodas[i].relay_pin, OUTPUT);
 		digitalWrite(sodas[i].relay_pin, HIGH);
 		}
-	
+
 	/* Set up the sold out pins */
 	cli();
 	PCICR |= 1 << PCIE2;
@@ -193,14 +242,14 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 	static unsigned char prev_mask = 0, debounce_count;
 
 	// Cycle through all eight buttons, check their values, and do the appropriate event
-	digitalWrite(BEEP_PIN, HIGH);
+	set_output(OUTPUT_SCANNER_BEEPER, BEEP_OFF);
 	for (i = soda_count - 1; i < soda_count; i--)
 		{
 		mask <<= 1;
 		if (!digitalRead(sodas[i].switch_pin))
 			mask |= 1;
 		}
-	
+
 	if (prev_mask != mask)
 		{
 		prev_mask = mask;
@@ -212,14 +261,14 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 		debounce_count++;
 		mask = 0;
 		}
-	
+
 	if (!mask)
 		;
 	else if (mask == 0x05)
 		{
 		if (sold_out & 0x10)
 			{
-			digitalWrite(BEEP_PIN, LOW);
+			set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 			pressed = -1;
 			}
 		else
@@ -234,6 +283,11 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 		larsen_on = 1;
 	else if (mask == 0x0A)
 		larsen_on = 0;
+	else if (mask == 0x18)
+		{
+		type_display();
+		return SCHEDULE_REDO;
+		}
 	else if (mask == (1 << RANDOM_SODA_NUMBER))
 		do_random_vend(KIND_ANY);
 	else if (mask == 0x30)
@@ -241,12 +295,12 @@ char vend_check(void *ptr, unsigned long *t, unsigned long m)
 	else if (mask == 0xC0)
 		do_random_vend(KIND_REGULAR);
 	else if (mask == 0xA0)
-		digitalWrite(BEEP_PIN, LOW);
+		set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 	else if (!(mask & (mask - 1))) /* If only one bit is set in the mask */
 		{
 		if (mask & sold_out)
 			{
-			digitalWrite(BEEP_PIN, LOW);
+			set_output(OUTPUT_SCANNER_BEEPER, BEEP_ON);
 			pressed = -1;
 			}
 		else
