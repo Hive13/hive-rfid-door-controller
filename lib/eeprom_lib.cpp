@@ -1,9 +1,12 @@
 #include "config.h"
 
+#include <Arduino.h>
 #include <EEPROM.h>
 
 #include "eeprom_lib.h"
+#ifndef NO_VEND
 #include "vend.h"
+#endif
 #include "log.h"
 
 static const unsigned long crc_table[16] =
