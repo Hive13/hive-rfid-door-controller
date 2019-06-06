@@ -27,16 +27,17 @@ void bleed_off(unsigned long m)
 
 	if (sched)
 		schedule_cancel(sched);
-	
-	sched = schedule(m + BLEED_OFF_MS, end_bleed_off, NULL);
+
+	sched = schedule(m, end_bleed_off, NULL);
 	}
 
 char handle_air_compressor(void *ptr, unsigned long *t, unsigned long m)
 	{
 	static unsigned int log_time = 0;
-	static char state = LOW;
+	static signed char debounce = 0;
+	static unsigned char state = 0;
 
-	int val = analogRead(PRESSURE_PIN);
+	signed int val = analogRead(PRESSURE_PIN);
 	/*
 		Sensor is 500 mV at 0 P.S.I. and 4500 mV at 200 P.S.I.
 		There is a resistor network dividing this by 2.
@@ -49,20 +50,27 @@ char handle_air_compressor(void *ptr, unsigned long *t, unsigned long m)
 		2. Multiply by 2000 / 640 => 25 / 8.
 	*/
 	val = ((val - 80) * 25) / 8;
+	if (val < 0 || val > 2000) /* Should not happen; shut off NOW */
+		debounce = 128;
+	if (val > OFF_PSI)
+		debounce++;
+	if (val < ON_PSI)
+		debounce--;
 
-	if (val < 0 || val > OFF_PSI)
+	if (debounce > 5)
 		{
+		debounce = 0;
 		digitalWrite(COMPRESS_PIN, LOW);
-		if (state == HIGH)
-			bleed_off(m);
-		state = LOW;
+		if (state)
+			bleed_off(m + BLEED_OFF_MS);
+		state = 0;
 		}
-	else if (val < ON_PSI)
+	else if (debounce < -5)
 		{
 		digitalWrite(COMPRESS_PIN, HIGH);
 		state = HIGH;
 		}
-	
+
 	if (log_time < m)
 		{
 		log_temp(val, DEVICE);
