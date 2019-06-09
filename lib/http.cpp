@@ -153,3 +153,28 @@ void update_nonce(void)
 	if (i == RESPONSE_GOOD)
 		cJSON_Delete(result);
 	}
+
+unsigned char quiet_hours(unsigned int *start_ms, unsigned int *end_ms, unsigned char *in_quiet)
+	{
+	struct cJSON *result, *data = cJSON_CreateObject(), *item;
+	unsigned char i;
+	char rand[RAND_SIZE];
+
+	cJSON_AddItemToObjectCS(data, "operation", cJSON_CreateString("quiet_hours"));
+	add_random_response(data, rand);
+	cJSON_AddItemToObjectCS(data, "version",   cJSON_CreateNumber(2));
+	i = http_request(data, &result, rand);
+
+	if (i == RESPONSE_GOOD)
+		{
+		if (start_ms && (item = cJSON_GetObjectItem(result, "start_ms")))
+			*start_ms = item->valueint;
+		if (end_ms && (item = cJSON_GetObjectItem(result, "end_ms")))
+			*end_ms = item->valueint;
+		if (in_quiet && (item = cJSON_GetObjectItem(result, "in_quiet")))
+			*in_quiet = cJSON_IsTrue(item);
+		cJSON_Delete(result);
+		}
+
+	return i;
+	}

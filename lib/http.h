@@ -19,6 +19,7 @@ void log_temp(unsigned long temp, char *name);
 void update_soda_status(unsigned char sold_out_mask);
 void update_nonce(void);
 unsigned char can_vend(unsigned long badge);
+unsigned char quiet_hours(unsigned int *start_ms, unsigned int *end_ms, unsigned char *in_quiet);
 
 #ifdef __cplusplus
 }
