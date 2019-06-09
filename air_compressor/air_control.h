@@ -1,12 +1,13 @@
 #ifndef __AIR_CONTROL_H
 #define __AIR_CONTROL_H
 
+#define BOUNCE_COUNT 5
 #define BLEED_OFF_MS 5000
 #define BLEED_PIN    D7
 #define COMPRESS_PIN D8
 #define PRESSURE_PIN A0
-#define OFF_PSI      700
-#define ON_PSI       600
+#define OFF_PSI      1600
+#define ON_PSI       1000
 #define LOG_INTERVAL 5000
 
 #ifdef __cplusplus

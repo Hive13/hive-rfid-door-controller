@@ -3,6 +3,7 @@
 #include "air_control.h"
 #include "schedule.h"
 #include "http.h"
+#include "log.h"
 
 void air_compressor_init(void)
 	{
@@ -51,13 +52,18 @@ char handle_air_compressor(void *ptr, unsigned long *t, unsigned long m)
 	*/
 	val = ((val - 80) * 25) / 8;
 	if (val < 0 || val > 2000) /* Should not happen; shut off NOW */
-		debounce = 128;
-	if (val > OFF_PSI)
+		debounce = 127;
+	else if (val > OFF_PSI && debounce < BOUNCE_COUNT && state)
 		debounce++;
-	if (val < ON_PSI)
+	else if (val < ON_PSI && debounce > -BOUNCE_COUNT && !state)
 		debounce--;
+	else
+		debounce = 0;
 
-	if (debounce > 5)
+	log_msg("PSI: %d.%d", val / 10, val % 10);
+	log_msg("Debounce: %d", debounce);
+
+	if (debounce >= BOUNCE_COUNT)
 		{
 		debounce = 0;
 		digitalWrite(COMPRESS_PIN, LOW);
@@ -65,10 +71,11 @@ char handle_air_compressor(void *ptr, unsigned long *t, unsigned long m)
 			bleed_off(m + BLEED_OFF_MS);
 		state = 0;
 		}
-	else if (debounce < -5)
+	else if (debounce <= -BOUNCE_COUNT)
 		{
+		debounce = 0;
 		digitalWrite(COMPRESS_PIN, HIGH);
-		state = HIGH;
+		state = 1;
 		}
 
 	if (log_time < m)
