@@ -12,7 +12,7 @@
 
 extern unsigned char key[16];
 extern char *device;
-extern OneWire *ds = NULL;
+extern OneWire *ds;
 
 extern struct temp_sensor *sensors;
 extern unsigned char sensor_count;

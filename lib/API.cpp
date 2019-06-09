@@ -5,7 +5,7 @@
 
 #ifdef PLATFORM_ARDUINO
 #include <Ethernet.h>
-#include <b64.h>
+//#include <b64.h>
 #include <HttpClient.h>
 #else
 #include <ESP8266WiFi.h>

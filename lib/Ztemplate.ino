@@ -28,7 +28,7 @@ void setup(void)
 	scanner_init(open_door);
 #endif
 	doorbell_init();
-	temp_init();
+	temperature_init();
 	beep_it(BEEP_PATTERN_START);
 	}
 

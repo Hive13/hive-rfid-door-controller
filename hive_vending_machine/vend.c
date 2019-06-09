@@ -1,7 +1,6 @@
 #include "config.h"
 
 #include <Arduino.h>
-#include <avr/eeprom.h>
 
 #include "cJSON.h"
 #include "log.h"
@@ -10,6 +9,7 @@
 #include "http.h"
 #include "schedule.h"
 #include "output.h"
+#include "eeprom_lib.h"
 
 // All eight soda buttons where 0 is the top button and 7 is the bottom button.
 // In a format of switch pin number and a relay pin number, and a default type.

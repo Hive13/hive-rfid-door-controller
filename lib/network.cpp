@@ -2,6 +2,7 @@
 
 #ifdef PLATFORM_ARDUINO
 #include <Ethernet.h>
+#include <Udp.h>
 #endif
 #ifdef PLATFORM_ESP8266
 #include <ESP8266WiFi.h>
@@ -19,7 +20,6 @@
 #include "output.h"
 #endif
 
-static WiFiUDP udp;
 static IPAddress mc_ip(239, 72, 49, 51);
 struct mc_operation
 	{
@@ -37,6 +37,7 @@ char handle_ethernet(void *ptr, unsigned long *t, unsigned long m)
 
 	return SCHEDULE_REDO;
 	}
+typedef EthernetUDP MulticastUDP;
 #endif
 
 #ifdef PLATFORM_ESP8266
@@ -48,7 +49,10 @@ void wifi_error(void)
 	WiFi.disconnect(1);
 	network_init();
 	}
+
+typedef WiFiUDP MulticastUDP;
 #endif
+static MulticastUDP udp;
 
 void register_mc(char header[], void *ptr)
 	{
@@ -63,7 +67,7 @@ void register_mc(char header[], void *ptr)
 			}
 	}
 
-static char handle_mc(WiFiUDP *u, unsigned long *time, unsigned long now)
+static char handle_mc(MulticastUDP *u, unsigned long *time, unsigned long now)
 	{
 	char buffer[256];
 	int sz;

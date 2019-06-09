@@ -6,6 +6,7 @@
 #include "scanner.h"
 #include "schedule.h"
 #include "log.h"
+#include "http.h"
 
 static WIEGAND wg;
 #ifdef CACHE_BADGES
@@ -73,7 +74,7 @@ void scanner_init(scan_handler *handler)
 	memset(usersCache, 0, sizeof(usersCache));
 #endif
 #ifdef PLATFORM_ARDUINO
-	wg.begin(WIEGAND_D0_PIN, digitalPinToInterrupt(WIEGAND_D0_PIN), WIEGAND_D1_PIN, digitalPinToInterrupt(WIEGAND_D1_PIN));
+	wg.begin(WIEGAND_D0_PIN, WIEGAND_D1_PIN);
 #else
 	wg.begin(WIEGAND_D0_PIN, WIEGAND_D0_PIN, WIEGAND_D1_PIN, WIEGAND_D1_PIN);
 #endif

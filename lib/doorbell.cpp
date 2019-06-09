@@ -16,6 +16,7 @@
 #include "ui.h"
 #include "schedule.h"
 #include "doorbell.h"
+#include "network.h"
 
 #ifdef PLATFORM_ARDUINO
 static EthernetUDP            udp;

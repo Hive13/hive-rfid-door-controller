@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include <Arduino.h>
 #include <OneWire.h>
 
@@ -10,7 +12,7 @@ OneWire *ds = NULL;
 extern struct output outputs[];
 extern unsigned char output_count;
 
-void output_init(unsigned char pin)
+void output_init(void)
 	{
 	unsigned char i, j;
 	struct output *o;
@@ -67,6 +69,7 @@ void set_output(unsigned char output_num, unsigned char state)
 		else
 			*(o->data.avr.port) &= ~mask;
 		}
+#ifdef PLATFORM_ESP8266
 	else if (o->type == OUTPUT_TYPE_ESP)
 		{
 		if (state)
@@ -74,6 +77,7 @@ void set_output(unsigned char output_num, unsigned char state)
 		else
 			GPOC |= (1 << o->pin);
 		}
+#endif
 	else if (o->type == OUTPUT_TYPE_DS2408)
 		{
 		ds->reset();

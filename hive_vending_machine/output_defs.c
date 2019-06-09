@@ -8,7 +8,7 @@ struct output outputs[] =
 		{ /* OUTPUT_DOOR_LATCH */
 		.type = OUTPUT_TYPE_ARDUINO,
 		.init = DOOR_LOCKED,
-		.pin  = A0,
+		.pin  = -1,
 		},
 		{ /* OUTPUT_SCANNER_BEEPER */
 		.type = OUTPUT_TYPE_ARDUINO,

@@ -1,5 +1,7 @@
 #include "config.h"
 
+#include <Arduino.h>
+
 #include "temp.h"
 #include "output.h"
 
