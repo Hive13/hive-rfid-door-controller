@@ -5,8 +5,7 @@
 #include "http.h"
 #include "log.h"
 
-static unsigned char in_quiet;
-
+static unsigned char in_quiet = 1;
 
 char handle_quiet_hours(void *ptr, unsigned long *t, unsigned long m)
 	{
