@@ -5,6 +5,18 @@
 #include "http.h"
 #include "log.h"
 
+static unsigned char in_quiet;
+
+
+char handle_quiet_hours(void *ptr, unsigned long *t, unsigned long m)
+	{
+	unsigned int start_ms, end_ms;
+
+	quiet_hours(&start_ms, &end_ms, &in_quiet);
+	*t = m + (start_ms < end_ms ? start_ms : end_ms);
+	return SCHEDULE_REDO;
+	}
+
 void air_compressor_init(void)
 	{
 	digitalWrite(COMPRESS_PIN, LOW);
@@ -13,6 +25,7 @@ void air_compressor_init(void)
 	pinMode(BLEED_PIN,    OUTPUT);
 
 	schedule(0, (time_handler *)handle_air_compressor, NULL);
+	schedule(0, (time_handler *)handle_quiet_hours, NULL);
 	}
 
 char end_bleed_off(void *ptr, unsigned long *t, unsigned long m)
@@ -51,7 +64,7 @@ char handle_air_compressor(void *ptr, unsigned long *t, unsigned long m)
 		2. Multiply by 2000 / 640 => 25 / 8.
 	*/
 	val = ((val - 80) * 25) / 8;
-	if (val < 0 || val > 2000) /* Should not happen; shut off NOW */
+	if (val < 0 || val > 2000 || in_quiet) /* These vals should not happen; shut off NOW (also quiet hours) */
 		debounce = 127;
 	else if (val > OFF_PSI && debounce < BOUNCE_COUNT && state)
 		debounce++;
