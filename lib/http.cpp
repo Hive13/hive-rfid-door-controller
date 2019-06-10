@@ -160,6 +160,7 @@ unsigned char quiet_hours(unsigned int *start_ms, unsigned int *end_ms, unsigned
 	unsigned char i;
 	char rand[RAND_SIZE];
 
+	cJSON_AddItemToObjectCS(data, "nonce",     cJSON_CreateString(nonce));
 	cJSON_AddItemToObjectCS(data, "operation", cJSON_CreateString("quiet_hours"));
 	add_random_response(data, rand);
 	cJSON_AddItemToObjectCS(data, "version",   cJSON_CreateNumber(2));
